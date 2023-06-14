@@ -729,40 +729,40 @@ public abstract class GenericProtocol {
     private void orderLoop() {
         while (true) {
             try {
-                InternalEvent pe = this.queue.take();
-                metrics.totalEventsCount++;
+                InternalEvent pe = this.orderQueue.take();
+                //metrics.totalEventsCount++;
                 if (logger.isDebugEnabled())
                     logger.debug("Handling event: " + pe);
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
-                        metrics.messagesInCount++;
+                        //metrics.messagesInCount++;
                         this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
-                        metrics.messagesFailedCount++;
+                        //metrics.messagesFailedCount++;
                         this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
-                        metrics.messagesSentCount++;
+                        //metrics.messagesSentCount++;
                         this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
-                        metrics.timersCount++;
+                        //metrics.timersCount++;
                         this.handleTimer((TimerEvent) pe);
                         break;
                     case NOTIFICATION_EVENT:
-                        metrics.notificationsCount++;
+                        //metrics.notificationsCount++;
                         this.handleNotification((NotificationEvent) pe);
                         break;
                     case IPC_EVENT:
                         IPCEvent i = (IPCEvent) pe;
                         switch (i.getIpc().getType()) {
                             case REPLY:
-                                metrics.repliesCount++;
+                                //metrics.repliesCount++;
                                 handleReply((ProtoReply) i.getIpc(), i.getSenderID());
                                 break;
                             case REQUEST:
-                                metrics.requestsCount++;
+                                //metrics.requestsCount++;
                                 handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
                                 break;
                             default:
@@ -770,7 +770,7 @@ public abstract class GenericProtocol {
                         }
                         break;
                     case CUSTOM_CHANNEL_EVENT:
-                        metrics.customChannelEventsCount++;
+                        //metrics.customChannelEventsCount++;
                         this.handleChannelEvent((CustomChannelEvent) pe);
                         break;
                     default:
