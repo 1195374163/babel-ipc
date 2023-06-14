@@ -35,10 +35,11 @@ public abstract class GenericProtocol {
     //TODO split in GenericConnectionlessProtocol and GenericConnectionProtocol?
 
     private final BlockingQueue<InternalEvent> queue;
+    private  BlockingQueue<InternalEvent> orderQueue;
     private  BlockingQueue<InternalEvent> parallelQueue;
     private final Thread executionThread;
-    
-    private  Thread   parallelexecutionThread;
+    private  Thread  parallelexecutionThread;
+    private  Thread  orderExecutionThread;
     private final String protoName;
     private final short protoId;
 
@@ -71,13 +72,15 @@ public abstract class GenericProtocol {
     public GenericProtocol(String protoName, short protoId, BlockingQueue<InternalEvent> policy) {
         this.queue = policy;
         this.parallelQueue=new LinkedBlockingQueue<>();
+        this.orderQueue=new  LinkedBlockingQueue<>();
         this.protoId = protoId;
         this.protoName = protoName;
 
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
-        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName);
+        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"-Dispatcher");
         this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+" parallel");
+        this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         channels = new HashMap<>();
         defaultChannel = -1;
 
@@ -133,6 +136,7 @@ public abstract class GenericProtocol {
      */
     public final void start() {
         this.executionThread.start();
+        this.orderExecutionThread.start();
         this.parallelexecutionThread.start();
     }
 
@@ -643,7 +647,8 @@ public abstract class GenericProtocol {
                             parallelQueue.add(pe);
                             break;
                         }
-                        this.handleMessageIn((MessageInEvent) pe);
+                        orderQueue.add(pe);
+                        //this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
                         metrics.messagesFailedCount++;
@@ -654,7 +659,8 @@ public abstract class GenericProtocol {
                             parallelQueue.add(pe);
                             break;
                         }
-                        this.handleMessageFailed((MessageFailedEvent) pe);
+                        orderQueue.add(pe);
+                        //this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
                         metrics.messagesSentCount++;
@@ -665,7 +671,8 @@ public abstract class GenericProtocol {
                             parallelQueue.add(pe);
                             break;
                         }
-                        this.handleMessageSent((MessageSentEvent) pe);
+                        orderQueue.add(pe);
+                        //this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
                         metrics.timersCount++;
@@ -677,6 +684,70 @@ public abstract class GenericProtocol {
                             parallelQueue.add(pe);
                             break;
                         }
+                        orderQueue.add(pe);
+                        //this.handleTimer((TimerEvent) pe);
+                        break;
+                    case NOTIFICATION_EVENT:
+                        metrics.notificationsCount++;
+                        orderQueue.add(pe);
+                        //this.handleNotification((NotificationEvent) pe);
+                        break;
+                    case IPC_EVENT:
+                        IPCEvent i = (IPCEvent) pe;
+                        switch (i.getIpc().getType()) {
+                            case REPLY:
+                                metrics.repliesCount++;
+                                orderQueue.add(pe);
+                                //handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+                                break;
+                            case REQUEST:
+                                metrics.requestsCount++;
+                                orderQueue.add(pe);
+                                //handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+                                break;
+                            default:
+                                throw new AssertionError("Ups");
+                        }
+                        break;
+                    case CUSTOM_CHANNEL_EVENT:
+                        metrics.customChannelEventsCount++;
+                        orderQueue.add(pe);
+                        //this.handleChannelEvent((CustomChannelEvent) pe);
+                        break;
+                    default:
+                        throw new AssertionError("Unexpected event received by babel. protocol "
+                                + protoId + " (" + protoName + ")");
+                }
+            } catch (Exception e) {
+                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +") " + e, e);
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private void orderLoop() {
+        while (true) {
+            try {
+                InternalEvent pe = this.queue.take();
+                metrics.totalEventsCount++;
+                if (logger.isDebugEnabled())
+                    logger.debug("Handling event: " + pe);
+                switch (pe.getType()) {
+                    case MESSAGE_IN_EVENT:
+                        metrics.messagesInCount++;
+                        this.handleMessageIn((MessageInEvent) pe);
+                        break;
+                    case MESSAGE_FAILED_EVENT:
+                        metrics.messagesFailedCount++;
+                        this.handleMessageFailed((MessageFailedEvent) pe);
+                        break;
+                    case MESSAGE_SENT_EVENT:
+                        metrics.messagesSentCount++;
+                        this.handleMessageSent((MessageSentEvent) pe);
+                        break;
+                    case TIMER_EVENT:
+                        metrics.timersCount++;
                         this.handleTimer((TimerEvent) pe);
                         break;
                     case NOTIFICATION_EVENT:
@@ -763,6 +834,7 @@ public abstract class GenericProtocol {
             }
         }
     }
+    
     //TODO try catch (ClassCastException)
     private void handleMessageIn(MessageInEvent m) {
         BabelMessage msg = m.getMsg();
