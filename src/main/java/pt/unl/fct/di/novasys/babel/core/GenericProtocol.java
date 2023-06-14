@@ -35,7 +35,10 @@ public abstract class GenericProtocol {
     //TODO split in GenericConnectionlessProtocol and GenericConnectionProtocol?
 
     private final BlockingQueue<InternalEvent> queue;
+    private  BlockingQueue<InternalEvent> parallelQueue;
     private final Thread executionThread;
+    
+    private  Thread   parallelexecutionThread;
     private final String protoName;
     private final short protoId;
 
@@ -67,12 +70,14 @@ public abstract class GenericProtocol {
      */
     public GenericProtocol(String protoName, short protoId, BlockingQueue<InternalEvent> policy) {
         this.queue = policy;
+        this.parallelQueue=new LinkedBlockingQueue<>();
         this.protoId = protoId;
         this.protoName = protoName;
 
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
         this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName);
+        this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+" parallel");
         channels = new HashMap<>();
         defaultChannel = -1;
 
@@ -128,6 +133,7 @@ public abstract class GenericProtocol {
      */
     public final void start() {
         this.executionThread.start();
+        this.parallelexecutionThread.start();
     }
 
     public ProtocolMetrics getMetrics() {
@@ -201,7 +207,7 @@ public abstract class GenericProtocol {
             throws HandlerRegistrationException {
         registerMessageHandler(cId, msgId, inHandler, null, failHandler);
     }
-
+    // 大家都调用这个
     /**
      * Register a message inHandler for the protocol to process message events
      * form the network
@@ -630,18 +636,47 @@ public abstract class GenericProtocol {
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
                         metrics.messagesInCount++;
+                        MessageInEvent inm=(MessageInEvent) pe;
+                        int inId=inm.getMsg().getMessage().getId();
+                        //在接收到accept和acceptack消息时,进入并行线程开始处理
+                        if (inId==201 || inId==202){
+                            parallelQueue.add(pe);
+                            break;
+                        }
                         this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
                         metrics.messagesFailedCount++;
+                        MessageFailedEvent failm=(MessageFailedEvent) pe;
+                        int failid=failm.getMsg().getMessage().getId();
+                        //在接收到accept和acceptack消息时,进入并行线程开始处理
+                        if (failid==201 || failid==202){
+                            parallelQueue.add(pe);
+                            break;
+                        }
                         this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
                         metrics.messagesSentCount++;
+                        MessageSentEvent sentm=(MessageSentEvent) pe;
+                        int sentid=sentm.getMsg().getMessage().getId();
+                        //在接收到accept和acceptack消息时,进入并行线程开始处理
+                        if (sentid==201 || sentid==202){
+                            parallelQueue.add(pe);
+                            break;
+                        }
                         this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
                         metrics.timersCount++;
+                        //刷新Msg的时钟
+                        TimerEvent timer=(TimerEvent) pe;
+                        int timerid=timer.getTimer().getId();
+                        //在timer类型是刷新accept消息，进入另外线程队列处理
+                        if (timerid==206){
+                            parallelQueue.add(pe);
+                            break;
+                        }
                         this.handleTimer((TimerEvent) pe);
                         break;
                     case NOTIFICATION_EVENT:
@@ -677,7 +712,57 @@ public abstract class GenericProtocol {
             }
         }
     }
-
+    
+    // 只有TPOChain的算法需要这个底层依赖,其他算法还是原来的依赖,这点要注意
+    private void  partiLoop(){
+        while (true) {
+            try {
+                InternalEvent pe = this.parallelQueue.take();
+                switch (pe.getType()) {
+                    case MESSAGE_IN_EVENT:
+                        this.handleMessageIn((MessageInEvent) pe);
+                        break;
+                    case MESSAGE_FAILED_EVENT:
+                        this.handleMessageFailed((MessageFailedEvent) pe);
+                        break;
+                    case MESSAGE_SENT_EVENT:
+                        this.handleMessageSent((MessageSentEvent) pe);
+                        break;
+                    case TIMER_EVENT:
+                        this.handleTimer((TimerEvent) pe);
+                        break;
+                        // 下面的情况不会涉及
+                    case NOTIFICATION_EVENT:
+                        this.handleNotification((NotificationEvent) pe);
+                        break;
+                    case IPC_EVENT:
+                        IPCEvent i = (IPCEvent) pe;
+                        switch (i.getIpc().getType()) {
+                            case REPLY:
+                                metrics.repliesCount++;
+                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+                                break;
+                            case REQUEST:
+                                metrics.requestsCount++;
+                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+                                break;
+                            default:
+                                throw new AssertionError("Ups");
+                        }
+                        break;
+                    case CUSTOM_CHANNEL_EVENT:
+                        this.handleChannelEvent((CustomChannelEvent) pe);
+                        break;
+                    default:
+                        throw new AssertionError("Unexpected event received by babel. protocol "
+                                + protoId + " (" + protoName + ")");
+                }
+            } catch (Exception e) {
+                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +") " + e, e);
+                e.printStackTrace();
+            }
+        }
+    }
     //TODO try catch (ClassCastException)
     private void handleMessageIn(MessageInEvent m) {
         BabelMessage msg = m.getMsg();
