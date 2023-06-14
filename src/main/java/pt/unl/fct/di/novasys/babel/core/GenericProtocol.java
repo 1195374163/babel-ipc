@@ -35,11 +35,11 @@ public abstract class GenericProtocol {
     //TODO split in GenericConnectionlessProtocol and GenericConnectionProtocol?
 
     private final BlockingQueue<InternalEvent> queue;
-    private  BlockingQueue<InternalEvent> orderQueue;
-    private  BlockingQueue<InternalEvent> parallelQueue;
+    private final BlockingQueue<InternalEvent> orderQueue;
+    private final BlockingQueue<InternalEvent> parallelQueue;
     private final Thread executionThread;
-    private  Thread  parallelexecutionThread;
-    private  Thread  orderExecutionThread;
+    private final Thread  parallelexecutionThread;
+    private final Thread  orderExecutionThread;
     private final String protoName;
     private final short protoId;
 
@@ -79,7 +79,7 @@ public abstract class GenericProtocol {
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
         this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"-Dispatcher");
-        this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+" parallel");
+        this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+"-parallel");
         this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         channels = new HashMap<>();
         defaultChannel = -1;
