@@ -47,8 +47,9 @@ public abstract class GenericProtocol {
     
     
     private final Thread executionThread;
-    private final Thread  parallelexecutionThread;
     private final Thread  orderExecutionThread;
+    private final Thread  parallelexecutionThread;
+  
     
     
     private final  Thread  childThread1;
@@ -57,6 +58,7 @@ public abstract class GenericProtocol {
     private final  Thread  childThread4;
     
     
+    public   int  threadID=-1;
     
     private final String protoName;
     private final short protoId;
