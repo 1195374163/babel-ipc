@@ -769,44 +769,35 @@ public abstract class GenericProtocol {
         }
     }
     
-    
     private void orderLoop() {
         while (true) {
             try {
                 InternalEvent pe = this.orderQueue.take();
-                //metrics.totalEventsCount++;
                 if (logger.isDebugEnabled())
                     logger.debug("Handling event: " + pe);
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
-                        //metrics.messagesInCount++;
                         this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
-                        //metrics.messagesFailedCount++;
                         this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
-                        //metrics.messagesSentCount++;
                         this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
-                        //metrics.timersCount++;
                         this.handleTimer((TimerEvent) pe);
                         break;
                     case NOTIFICATION_EVENT:
-                        //metrics.notificationsCount++;
                         this.handleNotification((NotificationEvent) pe);
                         break;
                     case IPC_EVENT:
                         IPCEvent i = (IPCEvent) pe;
                         switch (i.getIpc().getType()) {
                             case REPLY:
-                                //metrics.repliesCount++;
                                 handleReply((ProtoReply) i.getIpc(), i.getSenderID());
                                 break;
                             case REQUEST:
-                                //metrics.requestsCount++;
                                 handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
                                 break;
                             default:
@@ -814,7 +805,6 @@ public abstract class GenericProtocol {
                         }
                         break;
                     case CUSTOM_CHANNEL_EVENT:
-                        //metrics.customChannelEventsCount++;
                         this.handleChannelEvent((CustomChannelEvent) pe);
                         break;
                     default:
@@ -835,19 +825,94 @@ public abstract class GenericProtocol {
                 InternalEvent pe = this.parallelQueue.take();
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
+                        MessageInEvent inm=(MessageInEvent) pe;
+                        // 能进入这个通道的mssage都是201 202
+                        short threadid=inm.getMsg().getMessage().getThreadid();
+                        switch (threadid) {
+                            case 1:
+                                childQueue1.add(pe);
+                                break;
+                            case 2:
+                                childQueue2.add(pe);
+                                break;
+                            case 3:
+                                childQueue3.add(pe);
+                                break;
+                            case 4:
+                                childQueue4.add(pe);
+                                break;
+                            default:
+                                orderQueue.add(pe);
+                                break;
+                        }
                         break;
                     case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
+                        MessageFailedEvent failm=(MessageFailedEvent) pe;
+                        // 能进入这个通道的mssage都是201 202
+                        short failthreadid=failm.getMsg().getMessage().getThreadid();
+                        switch (failthreadid) {
+                            case 1:
+                                childQueue1.add(pe);
+                                break;
+                            case 2:
+                                childQueue2.add(pe);
+                                break;
+                            case 3:
+                                childQueue3.add(pe);
+                                break;
+                            case 4:
+                                childQueue4.add(pe);
+                                break;
+                            default:
+                                orderQueue.add(pe);
+                                break;
+                        }
+                        //this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
+                        MessageSentEvent sendm=(MessageSentEvent) pe;
+                        // 能进入这个通道的mssage都是201 202
+                        short sendthreadid=sendm.getMsg().getMessage().getThreadid();
+                        switch (sendthreadid) {
+                            case 1:
+                                childQueue1.add(pe);
+                                break;
+                            case 2:
+                                childQueue2.add(pe);
+                                break;
+                            case 3:
+                                childQueue3.add(pe);
+                                break;
+                            case 4:
+                                childQueue4.add(pe);
+                                break;
+                            default:
+                                orderQueue.add(pe);
+                                break;
+                        }
+                        //this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
+                        switch (threadID) {
+                            case 1:
+                                childQueue1.add(pe);
+                                break;
+                            case 2:
+                                childQueue2.add(pe);
+                                break;
+                            case 3:
+                                childQueue3.add(pe);
+                                break;
+                            case 4:
+                                childQueue4.add(pe);
+                                break;
+                            default:
+                                orderQueue.add(pe);
+                                break;
+                        }
                         break;
                     case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
+                        //this.handleNotification((NotificationEvent) pe);
                         break;
                     case IPC_EVENT:
                         IPCEvent i = (IPCEvent) pe;
@@ -856,14 +921,31 @@ public abstract class GenericProtocol {
                                 handleReply((ProtoReply) i.getIpc(), i.getSenderID());
                                 break;
                             case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+                                switch (threadID) {
+                                    case 1:
+                                        childQueue1.add(pe);
+                                        break;
+                                    case 2:
+                                        childQueue2.add(pe);
+                                        break;
+                                    case 3:
+                                        childQueue3.add(pe);
+                                        break;
+                                    case 4:
+                                        childQueue4.add(pe);
+                                        break;
+                                    default:
+                                        orderQueue.add(pe);
+                                        break;
+                                }
+                                //handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
                                 break;
                             default:
                                 throw new AssertionError("Ups");
                         }
                         break;
                     case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
+                        //this.handleChannelEvent((CustomChannelEvent) pe);
                         break;
                     default:
                         throw new AssertionError("Unexpected event received by babel. protocol "
@@ -875,9 +957,6 @@ public abstract class GenericProtocol {
             }
         }
     }
-    
-    
-    
     
     
     

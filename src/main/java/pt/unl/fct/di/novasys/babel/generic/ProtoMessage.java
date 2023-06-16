@@ -6,6 +6,8 @@ package pt.unl.fct.di.novasys.babel.generic;
 public abstract class ProtoMessage {
 
     private final short id;
+    
+    public  short   threadid=-1;
 
     public ProtoMessage(short id){
         this.id = id;
@@ -14,5 +16,8 @@ public abstract class ProtoMessage {
     public short getId() {
         return id;
     }
-
+    
+    public  short getThreadid(){
+        return threadid;
+    }
 }
