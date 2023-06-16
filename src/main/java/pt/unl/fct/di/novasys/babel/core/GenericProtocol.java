@@ -629,7 +629,31 @@ public abstract class GenericProtocol {
      * Used by babel to deliver channel messages to protocols.
      */
     final protected void deliverMessageIn(MessageInEvent msgIn) {
-        queue.add(msgIn);
+        ProtoMessage tempMessage=msgIn.getMsg().getMessage();
+        int inId=tempMessage.getId();
+        //在接收到accept和acceptack消息时,进入并行线程开始处理
+        if ( inId==501 || inId==502){
+            short threadid=tempMessage.getThreadid();
+            switch (threadid) {
+                case 1:
+                    childQueue1.add(msgIn);
+                    return;
+                case 2:
+                    childQueue2.add(msgIn);
+                    return;
+                case 3:
+                    childQueue3.add(msgIn);
+                    return;
+                case 4:
+                    childQueue4.add(msgIn);
+                    return;
+                default:
+                    orderQueue.add(msgIn);
+                    return;
+            }
+        }
+        orderQueue.add(msgIn);
+        //queue.add(msgIn);
     }
 
     /**
@@ -650,7 +674,29 @@ public abstract class GenericProtocol {
      * Used by babel to deliver timer events to protocols. Do not evoke directly.
      */
     final void deliverTimer(TimerEvent timer) {
-        queue.add(timer);
+        int timerid=timer.getTimer().getId();
+        //在timer类型是刷新accept消息，进入另外线程队列处理
+        if (timerid==206){
+            switch (threadID) {
+                case 1:
+                    childQueue1.add(timer);
+                    return;
+                case 2:
+                    childQueue2.add(timer);
+                    return;
+                case 3:
+                    childQueue3.add(timer);
+                    return;
+                case 4:
+                    childQueue4.add(timer);
+                    return;
+                default:
+                    orderQueue.add(timer);
+                    return;
+            }
+        }
+        orderQueue.add(timer);
+        //queue.add(timer);
     }
 
     /**
@@ -682,7 +728,7 @@ public abstract class GenericProtocol {
                         MessageInEvent inm=(MessageInEvent) pe;
                         int inId=inm.getMsg().getMessage().getId();
                         //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if ( inId==201 || inId==202){
+                        if ( inId==501 || inId==502){
                             parallelQueue.add(pe);
                             break;
                         }
@@ -694,7 +740,7 @@ public abstract class GenericProtocol {
                         MessageFailedEvent failm=(MessageFailedEvent) pe;
                         int failid=failm.getMsg().getMessage().getId();
                         //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if (failid==201 || failid==202){
+                        if (failid==501 || failid==502){
                             parallelQueue.add(pe);
                             break;
                         }
@@ -706,7 +752,7 @@ public abstract class GenericProtocol {
                         MessageSentEvent sentm=(MessageSentEvent) pe;
                         int sentid=sentm.getMsg().getMessage().getId();
                         //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if (sentid==201 || sentid==202){
+                        if (sentid==501 || sentid==502){
                             parallelQueue.add(pe);
                             break;
                         }
