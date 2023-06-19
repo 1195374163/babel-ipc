@@ -22,7 +22,6 @@ import java.util.Map;
 import static pt.unl.fct.di.novasys.babel.channels.multi.MultiChannel.LISTEN_ADDRESS_ATTRIBUTE;
 
 class ProtoConnections {
-
     private static final Logger logger = LogManager.getLogger(ProtoConnections.class);
 
     final static String PROTO_ID = "Protocol_ID";
@@ -34,7 +33,7 @@ class ProtoConnections {
     private final Map<Host, LinkedList<Connection<BabelMessage>>> inConnections;
     private final Map<Host, ConnectionState<BabelMessage>> outConnections;
 
-
+    //单线程执行通道
     private final SingleThreadedBiChannel<BabelMessage, BabelMessage> channel;
     private final NetworkManager<BabelMessage> network;
     private final ChannelListener<BabelMessage> listener;
@@ -45,7 +44,6 @@ class ProtoConnections {
                      ChannelListener<BabelMessage> listener,
                      NetworkManager<BabelMessage> network,
                      SingleThreadedBiChannel<BabelMessage, BabelMessage> channel) {
-
         this.channel = channel;
         this.network = network;
         this.listener = listener;

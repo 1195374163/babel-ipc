@@ -3,7 +3,6 @@ package pt.unl.fct.di.novasys.babel.internal;
 import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 
 public class BabelMessage {
-
     private final ProtoMessage message;
     private final short sourceProto;
     private final short destProto;

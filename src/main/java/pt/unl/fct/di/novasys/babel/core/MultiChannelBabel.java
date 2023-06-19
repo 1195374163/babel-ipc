@@ -1,37 +1,37 @@
 package pt.unl.fct.di.novasys.babel.core;
 
-
+import org.apache.commons.lang3.tuple.Triple;
+import pt.unl.fct.di.novasys.babel.exceptions.InvalidParameterException;
+import pt.unl.fct.di.novasys.babel.exceptions.NoSuchProtocolException;
+import pt.unl.fct.di.novasys.babel.exceptions.ProtocolAlreadyExistsException;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 import pt.unl.fct.di.novasys.babel.initializers.*;
 import pt.unl.fct.di.novasys.babel.internal.BabelMessage;
 import pt.unl.fct.di.novasys.babel.internal.IPCEvent;
 import pt.unl.fct.di.novasys.babel.internal.NotificationEvent;
 import pt.unl.fct.di.novasys.babel.internal.TimerEvent;
-import pt.unl.fct.di.novasys.babel.exceptions.InvalidParameterException;
-import pt.unl.fct.di.novasys.babel.exceptions.NoSuchProtocolException;
-import pt.unl.fct.di.novasys.babel.exceptions.ProtocolAlreadyExistsException;
 import pt.unl.fct.di.novasys.babel.metrics.MetricsManager;
-import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
-import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 import pt.unl.fct.di.novasys.channel.IChannel;
 import pt.unl.fct.di.novasys.channel.accrual.AccrualChannel;
 import pt.unl.fct.di.novasys.channel.simpleclientserver.SimpleClientChannel;
 import pt.unl.fct.di.novasys.channel.simpleclientserver.SimpleServerChannel;
+import pt.unl.fct.di.novasys.channel.tcp.MultithreadedTCPChannel;
 import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
 import pt.unl.fct.di.novasys.network.ISerializer;
 import pt.unl.fct.di.novasys.network.data.Host;
-import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+//多通道的Babel
 /**
- * The Babel class provides applications with a Runtime that supports
+ * The MultiChannel class provides applications with a Runtime that supports
  * the execution of protocols.
  *
  * <p> An example of how to use the class follows:
@@ -66,39 +66,33 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @see GenericProtocol
  */
-public class Babel {
+public class MultiChannelBabel {
 
-    private static Babel system;
+    private static MultiChannelBabel system;
 
     /**
      * Returns the instance of the Babel Runtime
      *
      * @return the Babel instance
      */
-    public static synchronized Babel getInstance() {
+    public static synchronized MultiChannelBabel getInstance() {
         if (system == null)
-            system = new Babel();
+            system = new MultiChannelBabel();
         return system;
     }
 
-    
-    
     //Protocols
     private final Map<Short, GenericProtocol> protocolMap;
     private final Map<String, GenericProtocol> protocolByNameMap;
     private final Map<Short, Set<GenericProtocol>> subscribers;
 
-    
-    
     //Timers
     private final Map<Long, TimerEvent> allTimers;
     private final PriorityBlockingQueue<TimerEvent> timerQueue;
     private final Thread timersThread;
     private final AtomicLong timersCounter;
-    
-    
-    
-    //Channels: 这里用到了TCP通道 和其他类型的通道
+
+    //Channels
     private final Map<String, ChannelInitializer<? extends IChannel<BabelMessage>>> initializers;
 
     private final Map<Integer,
@@ -108,7 +102,7 @@ public class Babel {
     private long startTime;
     private boolean started = false;
 
-    private Babel() {
+    private MultiChannelBabel() {
         //Protocols
         this.protocolMap = new ConcurrentHashMap<>();
         this.protocolByNameMap = new ConcurrentHashMap<>();
@@ -131,7 +125,7 @@ public class Babel {
         registerChannelInitializer(AccrualChannel.NAME, new AccrualChannelInitializer());
 
         //registerChannelInitializer("Ackos", new AckosChannelInitializer());
-        //registerChannelInitializer(MultithreadedTCPChannel.NAME, new MultithreadedTCPChannelInitializer());
+        registerChannelInitializer(MultithreadedTCPChannel.NAME, new MultithreadedTCPChannelInitializer());
     }
     // 时钟无线循环
     private void timerLoop() {

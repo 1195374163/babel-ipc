@@ -29,15 +29,21 @@ public class MultiChannel extends SingleThreadedBiChannel<BabelMessage, BabelMes
 
     private static final int DEFAULT_PORT = 12727; //Decimal Ascii for DEL (127) ESC (27)
 
+    //与对应主机的连接使用12727
     private final NetworkManager<BabelMessage> network;
+    
+    //这是每个通道对应的处理handle
     private final Map<Short, ChannelListener<BabelMessage>> listeners;
 
     private Attributes attributes;
-
+    
+    //这是每个通道注册的连接
     private Map<Integer, ProtoConnections> protocolConnections;
-
+    
+    // 单例模型
     private static MultiChannel multiChannelInstance = null;
-
+    
+    
     public static MultiChannel getInstance(ISerializer<BabelMessage> serializer,
                                            ChannelListener<BabelMessage> list,
                                            short protoId,
@@ -48,15 +54,15 @@ public class MultiChannel extends SingleThreadedBiChannel<BabelMessage, BabelMes
         multiChannelInstance.addListener(protoId, list);
         return multiChannelInstance;
     }
-
+    
+    // 对通道赋值相应的事件处理函数
     private void addListener(short protoId, ChannelListener<BabelMessage> list) {
         if(this.listeners.putIfAbsent(protoId, list) != null)
             throw new RuntimeException("Protocol with id " + protoId + " asked for Multi Channel twice");
     }
 
-
+    
     private MultiChannel(ISerializer<BabelMessage> serializer, Properties properties) throws IOException {
-
         super("MultiChannel");
         this.listeners = new HashMap<>();
         this.protocolConnections = new HashMap<>();
@@ -72,6 +78,7 @@ public class MultiChannel extends SingleThreadedBiChannel<BabelMessage, BabelMes
         if(properties.containsKey("port"))
             port = Integer.parseInt(properties.getProperty("port"));
 
+        
         network = new NetworkManager<>(serializer, this, 1000, 3000, 1000);
 
 
@@ -83,9 +90,9 @@ public class MultiChannel extends SingleThreadedBiChannel<BabelMessage, BabelMes
         attributes = new Attributes();
         attributes.putShort(CHANNEL_MAGIC_ATTRIBUTE, TCP_MAGIC_NUMBER);
         attributes.putHost(LISTEN_ADDRESS_ATTRIBUTE, listenAddress);
-
     }
 
+    
     @Override
     protected void onInboundConnectionUp(Connection<BabelMessage> connection) {
         Host clientSocket;
@@ -171,9 +178,13 @@ public class MultiChannel extends SingleThreadedBiChannel<BabelMessage, BabelMes
         if (protoConnections != null) protoConnections.deliverMessage(protoMessage, connection);
     }
 
+    
+    // TODO: 2023/6/18 这里需要完善 
     @Override
     protected void onOpenConnection(Host host) {
         throw new NotImplementedException("Pls fix me");
+        
+        
     }
 
     @Override

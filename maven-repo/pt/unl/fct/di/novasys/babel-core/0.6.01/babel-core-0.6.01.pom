@@ -64,7 +64,13 @@
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+<!--        <repository>-->
+<!--            <id>github-rich-repo</id>-->
+<!--            <name>The Maven Repository on Github</name>-->
+<!--            <url>https://github.com/1195374163/network-layer-plus/maven-repo/</url>-->
+<!--        </repository>-->
     </repositories>
+    
     <dependencies>
         <dependency>
             <groupId>com.github.pfouto</groupId>

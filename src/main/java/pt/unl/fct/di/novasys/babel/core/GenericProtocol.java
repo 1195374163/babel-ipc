@@ -43,8 +43,21 @@ public abstract class GenericProtocol {
     private final   BlockingQueue<InternalEvent>  childQueue2;
     private final   BlockingQueue<InternalEvent>  childQueue3;
     private final   BlockingQueue<InternalEvent>  childQueue4;
-    
-    
+
+
+
+    //private static final int INITIAL_MAP_SIZE = 6000;
+    ///**
+    // * 局部日志
+    // */
+    //public static final Map<Host, HashMap<Integer, Instance>> instances=new HashMap<>(INITIAL_MAP_SIZE); ;
+    //
+    ///**
+    // * 对节点的一些配置信息，主要是各前链节点分发的实例信息
+    // * 和 接收到accptcl的数量
+    // * */
+    //private static final  Map<Host,RuntimeConfigure>  hostConfigureMap=new HashMap<>();
+
     
     private final Thread executionThread;
     private final Thread  orderExecutionThread;
