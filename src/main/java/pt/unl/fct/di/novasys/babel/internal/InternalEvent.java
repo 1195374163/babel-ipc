@@ -22,7 +22,8 @@ public abstract class InternalEvent {
         MESSAGE_FAILED_EVENT,
         CUSTOM_CHANNEL_EVENT
     }
-
+    
+    
     private transient final EventType t;
 
     /**
@@ -32,7 +33,7 @@ public abstract class InternalEvent {
     public InternalEvent(EventType type) {
         this.t = type;
     }
-
+    
     /**
      * Returns the event type of the protocol event
      * @return event type
@@ -41,6 +42,11 @@ public abstract class InternalEvent {
         return t;
     }
 
+    
+    
+    // 验证函数
+    
+    
     /**
      * Verifies if the event a message
      * @return true if is of type MESSAGE_EVENT; false otherwise

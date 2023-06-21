@@ -9,12 +9,14 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+// 这个类从通道中读取对象，并转发
 public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
 
     private static final Logger logger = LogManager.getLogger(ChannelToProtoForwarder.class);
 
+    
     final int channelId;
+    // consumers是 协议的id 和 对应协议的实例
     final Map<Short, GenericProtocol> consumers;
 
     public ChannelToProtoForwarder(int channelId) {
@@ -27,9 +29,13 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
             throw new AssertionError("Consumer with protoId " + protoId + " already exists in channel");
     }
 
+    
+    
+    
     @Override
     public void deliverMessage(BabelMessage message, Host host) {
         GenericProtocol channelConsumer;
+        //如果目的协议的-1，且消费者有一个
         if (message.getDestProto() == -1 && consumers.size() == 1)
             channelConsumer = consumers.values().iterator().next();
         else

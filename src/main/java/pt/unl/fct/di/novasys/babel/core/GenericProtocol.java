@@ -39,31 +39,19 @@ public abstract class GenericProtocol {
     private final BlockingQueue<InternalEvent> parallelQueue;
     
     
-    private final   BlockingQueue<InternalEvent>  childQueue1;
-    private final   BlockingQueue<InternalEvent>  childQueue2;
-    private final   BlockingQueue<InternalEvent>  childQueue3;
-    private final   BlockingQueue<InternalEvent>  childQueue4;
+    private final BlockingQueue<InternalEvent>  childQueue1;
+    private final BlockingQueue<InternalEvent>  childQueue2;
+    private final BlockingQueue<InternalEvent>  childQueue3;
+    private final BlockingQueue<InternalEvent>  childQueue4;
 
 
 
-    //private static final int INITIAL_MAP_SIZE = 6000;
-    ///**
-    // * 局部日志
-    // */
-    //public static final Map<Host, HashMap<Integer, Instance>> instances=new HashMap<>(INITIAL_MAP_SIZE); ;
-    //
-    ///**
-    // * 对节点的一些配置信息，主要是各前链节点分发的实例信息
-    // * 和 接收到accptcl的数量
-    // * */
-    //private static final  Map<Host,RuntimeConfigure>  hostConfigureMap=new HashMap<>();
-
+    public   int  threadID=-1;
     
     private final Thread executionThread;
     private final Thread  orderExecutionThread;
     private final Thread  parallelexecutionThread;
   
-    
     
     private final  Thread  childThread1;
     private final  Thread  childThread2;
@@ -71,25 +59,30 @@ public abstract class GenericProtocol {
     private final  Thread  childThread4;
     
     
-    public   int  threadID=-1;
     
     private final String protoName;
     private final short protoId;
 
     private int defaultChannel;
 
+    //这个字段代替了对通道的事件的处理方法
     private final Map<Integer, ChannelHandlers> channels;
     private final Map<Short, TimerHandler<? extends ProtoTimer>> timerHandlers;
     private final Map<Short, RequestHandler<? extends ProtoRequest>> requestHandlers;
     private final Map<Short, ReplyHandler<? extends ProtoReply>> replyHandlers;
     private final Map<Short, NotificationHandler<? extends ProtoNotification>> notificationHandlers;
 
+    
     private static final Babel babel = Babel.getInstance();
 
+    
     //Debug
     ProtocolMetrics metrics = new ProtocolMetrics();
     //protected ThreadMXBean tmx = ManagementFactory.getThreadMXBean();
 
+    
+    
+    
     /**
      * Creates a generic protocol with the provided name and numeric identifier
      * and the given event queue policy.
@@ -171,6 +164,10 @@ public abstract class GenericProtocol {
         return protoName;
     }
 
+    
+    
+    
+    
     /**
      * Initializes the protocol with the given properties
      *
@@ -191,6 +188,7 @@ public abstract class GenericProtocol {
         this.childThread3.start();
         this.childThread4.start();
     }
+    
 
     public ProtocolMetrics getMetrics() {
         return metrics;
@@ -200,12 +198,16 @@ public abstract class GenericProtocol {
         return babel.getMillisSinceStart();
     }
 
-    /* ------------------ PROTOCOL REGISTERS -------------------------------------------------*/
+    
+    
+    //------------------ PROTOCOL REGISTERS -------------------------------------
 
     protected void registerMetric(Metric m){
         MetricsManager.getInstance().registerMetric(m);
     }
 
+    
+    
     private <V> void registerHandler(short id, V handler, Map<Short, V> handlerMap)
             throws HandlerRegistrationException {
         if (handlerMap.putIfAbsent(id, handler) != null) {
@@ -214,6 +216,10 @@ public abstract class GenericProtocol {
         }
     }
 
+    
+    
+    
+    
     /**
      * Register a message inHandler for the protocol to process message events
      * form the network
@@ -263,7 +269,7 @@ public abstract class GenericProtocol {
             throws HandlerRegistrationException {
         registerMessageHandler(cId, msgId, inHandler, null, failHandler);
     }
-    // 大家都调用这个
+    // 注册消息处理器的实际执行者
     /**
      * Register a message inHandler for the protocol to process message events
      * form the network
@@ -337,15 +343,18 @@ public abstract class GenericProtocol {
         registerHandler(replyId, handler, replyHandlers);
     }
 
-    /* ------------------------- NETWORK/CHANNELS ---------------------- */
-
+    
+    // ------------------------- NETWORK/CHANNELS ----------------------
+    
+    //得到对应chanel的channel事件处理实例也有判断处理实例是否存在的作用
     private ChannelHandlers getChannelOrThrow(int channelId) {
         ChannelHandlers handlers = channels.get(channelId);
         if (handlers == null)
             throw new AssertionError("Channel does not exist: " + channelId);
         return handlers;
     }
-
+    
+    // 注册一个序列化和反序列化
     /**
      * Registers a (de)serializer for a message type
      *
@@ -356,7 +365,9 @@ public abstract class GenericProtocol {
                                                    ISerializer<? extends ProtoMessage> serializer) {
         babel.registerSerializer(channelId, msgId, serializer);
     }
-
+    
+    
+    // 每个协议创建一个TCP通道
     /**
      * Creates a new channel
      *
@@ -369,14 +380,18 @@ public abstract class GenericProtocol {
         registerSharedChannel(channelId);
         return channelId;
     }
-
+    
+    
+    // 这个方法向babel注册了开辟通道的消费协议，一般是谁创建谁，谁消费
     protected final void registerSharedChannel(int channelId) {
         babel.registerChannelInterest(channelId, this.protoId, this);
         channels.put(channelId, new ChannelHandlers());
         if (defaultChannel == -1)
             setDefaultChannel(channelId);
     }
-
+    
+    
+    // 设置默认的通道:目的是在 open  close  sendMsg 默认通道作为一个缺省的参数
     /**
      * Sets the default channel for the {@link #sendMessage(ProtoMessage, Host)}, {@link #openConnection(Host)}
      * and {@link #closeConnection(Host)} methods.
@@ -388,6 +403,11 @@ public abstract class GenericProtocol {
         defaultChannel = channelId;
     }
 
+    
+    
+    
+    
+    
     /**
      * Sends a message to a specified destination, using the default channel.
      * May require the use of {@link #openConnection(Host)} beforehand.
@@ -461,7 +481,9 @@ public abstract class GenericProtocol {
     protected final void sendMessage(ProtoMessage msg, short destProto, Host destination, int connection) {
         sendMessage(defaultChannel, msg, destProto, destination, connection);
     }
-
+    
+    
+    // sendMessage的实际执行者
     /**
      * Sends a message to a different protocol in the specified destination,
      * using a specific connection in the given channel.
@@ -482,6 +504,13 @@ public abstract class GenericProtocol {
         babel.sendMessage(channelId, connection, new BabelMessage(msg, this.protoId, destProto), destination);
     }
 
+    
+    
+    
+    
+    
+    
+    //关于通道的打开和关闭
     /**
      * Open a connection to the given peer using the default channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -492,6 +521,7 @@ public abstract class GenericProtocol {
         openConnection(peer, defaultChannel);
     }
 
+    //打开通道的实际执行者
     /**
      * Open a connection to the given peer using the given channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -503,6 +533,12 @@ public abstract class GenericProtocol {
         babel.openConnection(channelId, peer);
     }
 
+    
+    
+    
+    
+    
+    
     /**
      * Closes the connection to the given peer using the default channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -512,7 +548,8 @@ public abstract class GenericProtocol {
     protected final void closeConnection(Host peer) {
         closeConnection(peer, defaultChannel);
     }
-
+    
+    
     /**
      * Closes the connection to the given peer in the given channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -532,11 +569,17 @@ public abstract class GenericProtocol {
      * @param channelId  the channel to close the connection in
      * @param connection the channel-specific connection to close
      */
+    
+    //关闭通道的实际执行者
     protected final void closeConnection(Host peer, int channelId, int connection) {
         babel.closeConnection(channelId, peer, connection);
     }
 
-    /* ------------------ IPC BABEL PROXY -------------------------------------------------*/
+    
+    
+    
+    
+    // ------------------ IPC BABEL PROXY ---------------------
 
     /**
      * Sends a request to the destination protocol
@@ -560,6 +603,10 @@ public abstract class GenericProtocol {
         babel.sendIPC(new IPCEvent(reply, protoId, destination));
     }
 
+    
+    
+    
+    
     // ------------------------------ NOTIFICATION BABEL PROXY ---------------------------------
 
     /**
@@ -584,7 +631,10 @@ public abstract class GenericProtocol {
         notificationHandlers.remove(nId);
         babel.unsubscribeNotification(nId, this);
     }
-
+    
+    
+    
+    // 触发一个Notification
     /**
      * Triggers a notification, causing every protocol that subscribe it to execute its callback.
      *
@@ -594,7 +644,12 @@ public abstract class GenericProtocol {
         babel.triggerNotification(new NotificationEvent(n, protoId));
     }
 
-    /* -------------------------- TIMER BABEL PROXY ----------------------- */
+    
+    
+    
+    
+    
+    // -------------------------- TIMER BABEL PROXY ----------------------- 
 
     /**
      * Setups a period timer
@@ -629,8 +684,13 @@ public abstract class GenericProtocol {
         return babel.cancelTimer(timerID);
     }
 
-    // --------------------------------- DELIVERERS FROM BABEL ------------------------------------
+    
+    
+    
+    // --------- DELIVERERS FROM BABEL -------实质是 Babel中channelto-------------
+    
 
+    
     /**
      * Used by babel to deliver channel events to protocols. Do not evoke directly.
      */
@@ -683,6 +743,8 @@ public abstract class GenericProtocol {
         queue.add(event);
     }
 
+    
+    
     /**
      * Used by babel to deliver timer events to protocols. Do not evoke directly.
      */
@@ -726,8 +788,14 @@ public abstract class GenericProtocol {
         queue.add(ipc);
     }
 
-    /* ------------------ MAIN LOOP -------------------------------------------------*/
-
+    
+    
+    
+    
+    
+    
+    
+    // ------------------ MAIN LOOP -------------------------------------------------
     private void mainLoop() {
         while (true) {
             try {
@@ -738,50 +806,21 @@ public abstract class GenericProtocol {
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
                         metrics.messagesInCount++;
-                        MessageInEvent inm=(MessageInEvent) pe;
-                        int inId=inm.getMsg().getMessage().getId();
-                        //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if ( inId==501 || inId==502){
-                            parallelQueue.add(pe);
-                            break;
-                        }
                         orderQueue.add(pe);
                         //this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
                         metrics.messagesFailedCount++;
-                        MessageFailedEvent failm=(MessageFailedEvent) pe;
-                        int failid=failm.getMsg().getMessage().getId();
-                        //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if (failid==501 || failid==502){
-                            parallelQueue.add(pe);
-                            break;
-                        }
                         orderQueue.add(pe);
                         //this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
                         metrics.messagesSentCount++;
-                        MessageSentEvent sentm=(MessageSentEvent) pe;
-                        int sentid=sentm.getMsg().getMessage().getId();
-                        //在接收到accept和acceptack消息时,进入并行线程开始处理
-                        if (sentid==501 || sentid==502){
-                            parallelQueue.add(pe);
-                            break;
-                        }
                         orderQueue.add(pe);
                         //this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
                         metrics.timersCount++;
-                        //刷新Msg的时钟
-                        TimerEvent timer=(TimerEvent) pe;
-                        int timerid=timer.getTimer().getId();
-                        //在timer类型是刷新accept消息，进入另外线程队列处理
-                        if (timerid==206){
-                            parallelQueue.add(pe);
-                            break;
-                        }
                         orderQueue.add(pe);
                         //this.handleTimer((TimerEvent) pe);
                         break;

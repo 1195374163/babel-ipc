@@ -68,8 +68,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Babel {
 
+    // TODO: 2023/6/21   Babel只是传递消息，不涉及处理，应该对性能影响不大,或许可以对
+    //  Babel从单线程改成多线程
     private static Babel system;
-
+    
     /**
      * Returns the instance of the Babel Runtime
      *
@@ -82,12 +84,15 @@ public class Babel {
     }
 
     
-    
     //Protocols
     private final Map<Short, GenericProtocol> protocolMap;
     private final Map<String, GenericProtocol> protocolByNameMap;
+    
+    
+    
+    //注册哪些订阅
     private final Map<Short, Set<GenericProtocol>> subscribers;
-
+    
     
     
     //Timers
@@ -95,6 +100,7 @@ public class Babel {
     private final PriorityBlockingQueue<TimerEvent> timerQueue;
     private final Thread timersThread;
     private final AtomicLong timersCounter;
+    
     
     
     
@@ -189,10 +195,12 @@ public class Babel {
         }
     }
 
+    
+    
     // ----------------------------- NETWORK
-
+    
     /**
-     * Registers a new channel in babel
+     * 注册几种通道类型的初始化器Registers a new channel in babel
      *
      * @param name        the channel name
      * @param initializer the channel initializer
@@ -205,7 +213,9 @@ public class Babel {
                     " already registered: " + old);
         }
     }
-
+    
+    
+    // 创建一个TCP通道
     /**
      * Creates a channel for a protocol
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -229,7 +239,11 @@ public class Babel {
         channelMap.put(channelId, Triple.of(newChannel, forwarder, serializer));
         return channelId;
     }
-
+    
+    
+    
+    
+    //注册 通道到protocol的转发 ，哪个协议是对这个通道来的消息的消费者
     /**
      * Registers interest in receiving events from a channel.
      *
@@ -240,7 +254,9 @@ public class Babel {
         ChannelToProtoForwarder forwarder = channelMap.get(channelId).getMiddle();
         forwarder.addConsumer(protoId, consumerProto);
     }
-
+    
+    
+    
     /**
      * Sends a message to a peer using the given channel and connection.
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -276,7 +292,9 @@ public class Babel {
             throw new AssertionError("Opening connection in non-existing channelId " + channelId);
         channelEntry.getLeft().openConnection(target);
     }
-
+    
+    
+    // 注册消息的序列化和反序列化
     /**
      * Registers a (de)serializer for a message type.
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -289,6 +307,16 @@ public class Babel {
         channelEntry.getRight().registerProtoSerializer(msgCode, serializer);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     // ----------------------------- REQUEST / REPLY / NOTIFY
 
     /**
@@ -308,6 +336,10 @@ public class Babel {
         gp.deliverIPC(ipc);
     }
 
+    
+
+    // ----------------------------- NOTIFY
+    
     /**
      * Subscribes a protocol to a notification
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -324,6 +356,9 @@ public class Babel {
         subscribers.getOrDefault(nId, Collections.emptySet()).remove(consumer);
     }
 
+    
+    //-----------------------触发相应的订阅
+    
     /**
      * Triggers a notification, delivering to all subscribed protocols
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -333,6 +368,16 @@ public class Babel {
             c.deliverNotification(n);
         }
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     // ---------------------------- TIMERS
 
     /**
@@ -387,6 +432,12 @@ public class Babel {
         return tE.getTimer();
     }
 
+    
+    
+    
+    
+    
+    
     // ---------------------------- CONFIG
 
     /**
@@ -422,7 +473,8 @@ public class Babel {
         }
         return configuration;
     }
-
+    
+    // 返回配置文件名字：在参数指定的配置文件的优先级大于default配置文件
     private static String extractConfigFileFromArguments(List<String> args, String defaultConfigFile) {
         String config = defaultConfigFile;
         Iterator<String> iter = args.iterator();

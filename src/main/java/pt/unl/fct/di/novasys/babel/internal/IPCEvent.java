@@ -15,6 +15,8 @@ public class IPCEvent extends InternalEvent {
         this.destinationID = destination;
     }
 
+    
+    
     public ProtoIPC getIpc() {
         return ipc;
     }

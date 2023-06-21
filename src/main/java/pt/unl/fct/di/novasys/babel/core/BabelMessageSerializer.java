@@ -9,18 +9,26 @@ import java.io.IOException;
 import java.util.Map;
 
 public class BabelMessageSerializer implements ISerializer<BabelMessage> {
-
+    
+    //这个Map是msg的id和它对应的序列化对象
     Map<Short, ISerializer<? extends ProtoMessage>> serializers;
 
     public BabelMessageSerializer(Map<Short, ISerializer<? extends ProtoMessage>> serializers) {
         this.serializers = serializers;
     }
-
+    
+    
+    
+    //新加的消息调用这个方法注册到这个Map<>中
     public void registerProtoSerializer(short msgCode, ISerializer<? extends ProtoMessage> protoSerializer) {
         if (serializers.putIfAbsent(msgCode, protoSerializer) != null)
             throw new AssertionError("Trying to re-register serializer in Babel: " + msgCode);
     }
 
+    
+    
+    
+    
     @Override
     public void serialize(BabelMessage msg, ByteBuf byteBuf) throws IOException {
         byteBuf.writeShort(msg.getSourceProto());
