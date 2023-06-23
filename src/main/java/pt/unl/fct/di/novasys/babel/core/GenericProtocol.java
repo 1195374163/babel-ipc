@@ -618,6 +618,7 @@ public abstract class GenericProtocol {
     
     //关闭通道的实际执行者
     protected final void closeConnection(Host peer, int channelId, int connection) {
+        //这个connection是没有使用的
         babel.closeConnection(channelId, peer, connection);
     }
 

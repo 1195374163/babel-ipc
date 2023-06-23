@@ -31,7 +31,7 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
 
     
     
-    
+    // 这里是真正地从通道拿数据
     @Override
     public void deliverMessage(BabelMessage message, Host host) {
         GenericProtocol channelConsumer;
@@ -49,18 +49,21 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
         }
         channelConsumer.deliverMessageIn(new MessageInEvent(message, host, channelId));
     }
-
+    
+    //
     @Override
     public void messageSent(BabelMessage addressedMessage, Host host) {
         consumers.values().forEach(c -> c.deliverMessageSent(new MessageSentEvent(addressedMessage, host, channelId)));
     }
-
+    
+    //
     @Override
     public void messageFailed(BabelMessage addressedMessage, Host host, Throwable throwable) {
         consumers.values().forEach(c ->
                 c.deliverMessageFailed(new MessageFailedEvent(addressedMessage, host, throwable, channelId)));
     }
-
+    
+    //
     @Override
     public void deliverEvent(ChannelEvent channelEvent) {
         consumers.values().forEach(v -> v.deliverChannelEvent(new CustomChannelEvent(channelEvent, channelId)));
