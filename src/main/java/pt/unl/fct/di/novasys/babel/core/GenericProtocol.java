@@ -708,7 +708,7 @@ public abstract class GenericProtocol {
      * @return unique identifier of the timer set
      */
     protected long setupPeriodicTimer(ProtoTimer timer, long first, long period) {
-        return babel.setupPeriodicTimer(timer, this, first, period);
+        return babel.setupPeriodicTimer(timer, this,protoId, first, period);
     }
 
     /**
@@ -719,7 +719,7 @@ public abstract class GenericProtocol {
      * @return unique identifier of the t set
      */
     protected long setupTimer(ProtoTimer t, long timeout) {
-        return babel.setupTimer(t, this, timeout);
+        return babel.setupTimer(t, this,protoId, timeout);
     }
 
     /**
@@ -729,7 +729,7 @@ public abstract class GenericProtocol {
      * @return the canceled timer event, or null if it wasn't set or have already been trigger and was not periodic
      */
     protected ProtoTimer cancelTimer(long timerID) {
-        return babel.cancelTimer(timerID);
+        return babel.cancelTimer(timerID,protoId);
     }
 
     

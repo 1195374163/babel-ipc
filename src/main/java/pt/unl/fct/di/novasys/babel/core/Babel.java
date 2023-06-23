@@ -101,8 +101,14 @@ public class Babel {
     
     //Timers
     private final Map<Long, TimerEvent> allTimers;
+    // 一份协议一个timer
+    private Map<Short,Map<Long, TimerEvent>>  protocolTimers;
     private final PriorityBlockingQueue<TimerEvent> timerQueue;
+    private final PriorityBlockingQueue<TimerEvent> timerQueue2;
+    private final PriorityBlockingQueue<TimerEvent> timerQueue3;
     private final Thread timersThread;
+    private  final  Thread  timersThread2;
+    private  final  Thread   timersThread3;
     private final AtomicLong timersCounter;
     
     
@@ -137,9 +143,14 @@ public class Babel {
         //Timers
         allTimers = new HashMap<>();
         timerQueue = new PriorityBlockingQueue<>();
+        timerQueue2 = new PriorityBlockingQueue<>();
+        timerQueue3 = new PriorityBlockingQueue<>();
         timersCounter = new AtomicLong();
         timersThread = new Thread(this::timerLoop);
+        timersThread2 = new Thread(this::timerLoop2);
+        timersThread3 = new Thread(this::timerLoop3);
 
+        
         //Channels
         channelMap = new ConcurrentHashMap<>();
         channelIdGenerator = new AtomicInteger(0);
@@ -176,11 +187,13 @@ public class Babel {
         }
     }
 
+    
 
     // todo 对系统中的时钟进行模拟，这个真的对吗？timerQueue添加过程中，不是按照顺序添加的
     private void timerLoop() {
         while (true) {
             long now = getMillisSinceStart();
+            
             TimerEvent tE = timerQueue.peek();
 
             long toSleep = tE != null ? tE.getTriggerTime() - now : Long.MAX_VALUE;
@@ -201,7 +214,59 @@ public class Babel {
             }
         }
     }
+    
+    private void timerLoop2() {
+        while (true) {
+            long now = getMillisSinceStart();
 
+            TimerEvent tE = timerQueue2.peek();
+
+            long toSleep = tE != null ? tE.getTriggerTime() - now : Long.MAX_VALUE;
+
+            if (toSleep <= 0) {//
+                TimerEvent t = timerQueue2.remove();
+                //Deliver
+                t.getConsumer().deliverTimer(t);
+                if (t.isPeriodic()) {
+                    t.setTriggerTime(now + t.getPeriod());
+                    timerQueue2.add(t);
+                }
+            } else {
+                try {
+                    Thread.sleep(toSleep);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+    }
+
+    private void timerLoop3() {
+        while (true) {
+            long now = getMillisSinceStart();
+
+            TimerEvent tE = timerQueue3.peek();
+
+            long toSleep = tE != null ? tE.getTriggerTime() - now : Long.MAX_VALUE;
+
+            if (toSleep <= 0) {//
+                TimerEvent t = timerQueue3.remove();
+                //Deliver
+                t.getConsumer().deliverTimer(t);
+                if (t.isPeriodic()) {
+                    t.setTriggerTime(now + t.getPeriod());
+                    timerQueue3.add(t);
+                }
+            } else {
+                try {
+                    Thread.sleep(toSleep);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+    }
+    
+
+    
     
     /**
      * Begins the execution of all protocols registered in Babel
@@ -212,6 +277,9 @@ public class Babel {
         
         MetricsManager.getInstance().start();
         timersThread.start();
+        timersThread2.start();
+        timersThread3.start();
+        
         protocolMap.values().forEach(GenericProtocol::start);
     }
 
@@ -412,9 +480,9 @@ public class Babel {
     
     
     
-    // TODO: 2023/6/23 每个协议一个timer线程 
     
-    // ---------------------------- TIMERS
+    
+    // ---------------------------- TIMERS 每个协议一个timer线程 
 
     /**
      * Setups a periodic timer to be monitored by Babel
@@ -424,13 +492,24 @@ public class Babel {
      * @param first    the amount of time until the first trigger of the timer event
      * @param period   the periodicity of the timer event
      */
-    long setupPeriodicTimer(ProtoTimer t, GenericProtocol consumer, long first, long period) {
+    long setupPeriodicTimer(ProtoTimer t, GenericProtocol consumer,short protoid, long first, long period) {
         long id = timersCounter.incrementAndGet();
         TimerEvent newTimer = new TimerEvent(t, id, consumer,
                 getMillisSinceStart() + first, true, period);
         allTimers.put(newTimer.getUuid(), newTimer);
-        timerQueue.add(newTimer);
-        timersThread.interrupt();
+        if (protoid==100){
+            timerQueue.add(newTimer);
+            timersThread.interrupt();
+        }else if (protoid==200){
+            timerQueue2.add(newTimer);
+            timersThread.interrupt();
+        }else {
+            timerQueue3.add(newTimer);
+            timersThread.interrupt();
+        }
+        
+        //timerQueue.add(newTimer);
+        //timersThread.interrupt();
         return id;
     }
 
@@ -441,13 +520,23 @@ public class Babel {
      * @param consumer the protocol that setup the timer
      * @param timeout  the amount of time until the timer event is triggered
      */
-    long setupTimer(ProtoTimer t, GenericProtocol consumer, long timeout) {
+    long setupTimer(ProtoTimer t, GenericProtocol consumer, short protoid,long timeout) {
         long id = timersCounter.incrementAndGet();
         TimerEvent newTimer = new TimerEvent(t, id, consumer,
                 getMillisSinceStart() + timeout, false, -1);
-        timerQueue.add(newTimer);
+        //timerQueue.add(newTimer);
         allTimers.put(newTimer.getUuid(), newTimer);
-        timersThread.interrupt();
+        if (protoid==100){
+            timerQueue.add(newTimer);
+            timersThread.interrupt();
+        }else if (protoid==200){
+            timerQueue2.add(newTimer);
+            timersThread.interrupt();
+        }else {
+            timerQueue3.add(newTimer);
+            timersThread.interrupt();
+        }
+        //timersThread.interrupt();
         return id;
     }
 
@@ -459,12 +548,23 @@ public class Babel {
      * @param timerID the unique id of the timer event to be canceled
      * @return the timer event or null if it was not being monitored by Babel
      */
-    ProtoTimer cancelTimer(long timerID) {
+    ProtoTimer cancelTimer(long timerID,short protoid) {
         TimerEvent tE = allTimers.remove(timerID);
         if (tE == null)
             return null;
-        timerQueue.remove(tE);
-        timersThread.interrupt(); //TODO is this needed?
+
+        if (protoid==100){
+            timerQueue.remove(tE);
+            timersThread.interrupt();
+        }else if (protoid==200){
+            timerQueue2.remove(tE);
+            timersThread.interrupt();
+        }else {
+            timerQueue3.remove(tE);
+            timersThread.interrupt();
+        }
+        //timerQueue.remove(tE);
+        //timersThread.interrupt(); //TODO is this needed?
         return tE.getTimer();
     }
 

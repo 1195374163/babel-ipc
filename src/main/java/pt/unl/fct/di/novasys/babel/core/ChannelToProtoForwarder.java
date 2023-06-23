@@ -14,7 +14,7 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
 
     private static final Logger logger = LogManager.getLogger(ChannelToProtoForwarder.class);
 
-    
+    // 是通道的代表
     final int channelId;
     // consumers是 协议的id 和 对应协议的实例
     final Map<Short, GenericProtocol> consumers;
@@ -24,11 +24,13 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
         consumers = new ConcurrentHashMap<>();
     }
 
+    
     public void addConsumer(short protoId, GenericProtocol consumer) {
         if (consumers.putIfAbsent(protoId, consumer) != null)
             throw new AssertionError("Consumer with protoId " + protoId + " already exists in channel");
     }
 
+    
     
     
     // 这里是真正地从通道拿数据
@@ -56,14 +58,14 @@ public class ChannelToProtoForwarder implements ChannelListener<BabelMessage> {
         consumers.values().forEach(c -> c.deliverMessageSent(new MessageSentEvent(addressedMessage, host, channelId)));
     }
     
-    //
+    //当message发送失败
     @Override
     public void messageFailed(BabelMessage addressedMessage, Host host, Throwable throwable) {
         consumers.values().forEach(c ->
                 c.deliverMessageFailed(new MessageFailedEvent(addressedMessage, host, throwable, channelId)));
     }
     
-    //
+    //传递事件过来
     @Override
     public void deliverEvent(ChannelEvent channelEvent) {
         consumers.values().forEach(v -> v.deliverChannelEvent(new CustomChannelEvent(channelEvent, channelId)));
