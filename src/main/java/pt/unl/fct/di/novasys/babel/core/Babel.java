@@ -69,9 +69,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Babel {
 
     // TODO: 2023/6/21   Babel只是传递消息，不涉及处理，应该对性能影响不大,或许可以对
-    //  Babel从单线程改成多线程
+    //  修改意见 Babel从单线程改成多线程
     private static Babel system;
-    
+
+    // 单例模式：它是个运行框架
     /**
      * Returns the instance of the Babel Runtime
      *
@@ -84,9 +85,12 @@ public class Babel {
     }
 
     
-    //Protocols
+    
+    
+    //Protocols 注册了哪些协议，这个框架中拥有哪些协议
     private final Map<Short, GenericProtocol> protocolMap;
     private final Map<String, GenericProtocol> protocolByNameMap;
+    
     
     
     
@@ -104,16 +108,26 @@ public class Babel {
     
     
     
-    //Channels: 这里用到了TCP通道 和其他类型的通道
+    //Channels的初始化工厂: 这里用到了TCP通道 和其他类型的通道
     private final Map<String, ChannelInitializer<? extends IChannel<BabelMessage>>> initializers;
 
+
+    
+    
+    
+    // 代表着网络层的抽象，有通道    通道的接收     序列化/反序列化器
     private final Map<Integer,
             Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer>> channelMap;
     private final AtomicInteger channelIdGenerator;
 
+    
+    
+    
     private long startTime;
     private boolean started = false;
 
+    
+    
     private Babel() {
         //Protocols
         this.protocolMap = new ConcurrentHashMap<>();
@@ -130,7 +144,7 @@ public class Babel {
         channelMap = new ConcurrentHashMap<>();
         channelIdGenerator = new AtomicInteger(0);
         this.initializers = new ConcurrentHashMap<>();
-
+        // 注册了四种通道类型
         registerChannelInitializer(SimpleClientChannel.NAME, new SimpleClientChannelInitializer());
         registerChannelInitializer(SimpleServerChannel.NAME, new SimpleServerChannelInitializer());
         registerChannelInitializer(TCPChannel.NAME, new TCPChannelInitializer());
@@ -139,42 +153,9 @@ public class Babel {
         //registerChannelInitializer("Ackos", new AckosChannelInitializer());
         //registerChannelInitializer(MultithreadedTCPChannel.NAME, new MultithreadedTCPChannelInitializer());
     }
-    // 时钟无线循环
-    private void timerLoop() {
-        while (true) {
-            long now = getMillisSinceStart();
-            TimerEvent tE = timerQueue.peek();
 
-            long toSleep = tE != null ? tE.getTriggerTime() - now : Long.MAX_VALUE;
-
-            if (toSleep <= 0) {
-                TimerEvent t = timerQueue.remove();
-                //Deliver
-                t.getConsumer().deliverTimer(t);
-                if (t.isPeriodic()) {
-                    t.setTriggerTime(now + t.getPeriod());
-                    timerQueue.add(t);
-                }
-            } else {
-                try {
-                    Thread.sleep(toSleep);
-                } catch (InterruptedException ignored) {
-                }
-            }
-        }
-    }
-
-    /**
-     * Begins the execution of all protocols registered in Babel
-     */
-    public void start() {
-        startTime = System.currentTimeMillis();
-        started = true;
-        MetricsManager.getInstance().start();
-        timersThread.start();
-        protocolMap.values().forEach(GenericProtocol::start);
-    }
-
+    
+    
     /**
      * Register a protocol in Babel
      *
@@ -195,6 +176,49 @@ public class Babel {
         }
     }
 
+
+    // todo 对系统中的时钟进行模拟，这个真的对吗？timerQueue添加过程中，不是按照顺序添加的
+    private void timerLoop() {
+        while (true) {
+            long now = getMillisSinceStart();
+            TimerEvent tE = timerQueue.peek();
+
+            long toSleep = tE != null ? tE.getTriggerTime() - now : Long.MAX_VALUE;
+
+            if (toSleep <= 0) {//
+                TimerEvent t = timerQueue.remove();
+                //Deliver
+                t.getConsumer().deliverTimer(t);
+                if (t.isPeriodic()) {
+                    t.setTriggerTime(now + t.getPeriod());
+                    timerQueue.add(t);
+                }
+            } else {
+                try {
+                    Thread.sleep(toSleep);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+    }
+
+    
+    /**
+     * Begins the execution of all protocols registered in Babel
+     */
+    public void start() {
+        startTime = System.currentTimeMillis();
+        started = true;
+        
+        MetricsManager.getInstance().start();
+        timersThread.start();
+        protocolMap.values().forEach(GenericProtocol::start);
+    }
+
+    
+    
+    
+    
     
     
     // ----------------------------- NETWORK
@@ -213,9 +237,13 @@ public class Babel {
                     " already registered: " + old);
         }
     }
+
+
     
     
-    // 创建一个TCP通道
+    
+    // 创建一个通道：如TCP通道
+  
     /**
      * Creates a channel for a protocol
      * Called by {@link GenericProtocol}. Do not evoke directly.
@@ -241,8 +269,6 @@ public class Babel {
     }
     
     
-    
-    
     //注册 通道到protocol的转发 ，哪个协议是对这个通道来的消息的消费者
     /**
      * Registers interest in receiving events from a channel.
@@ -254,44 +280,7 @@ public class Babel {
         ChannelToProtoForwarder forwarder = channelMap.get(channelId).getMiddle();
         forwarder.addConsumer(protoId, consumerProto);
     }
-    
-    
-    
-    /**
-     * Sends a message to a peer using the given channel and connection.
-     * Called by {@link GenericProtocol}. Do not evoke directly.
-     */
-    void sendMessage(int channelId, int connection, BabelMessage msg, Host target) {
-        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
-                channelMap.get(channelId);
-        if (channelEntry == null)
-            throw new AssertionError("Sending message to non-existing channelId " + channelId);
-        channelEntry.getLeft().sendMessage(msg, target, connection);
-    }
 
-    /**
-     * Closes a connection to a peer in a given channel.
-     * Called by {@link GenericProtocol}. Do not evoke directly.
-     */
-    void closeConnection(int channelId, Host target, int connection) {
-        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
-                channelMap.get(channelId);
-        if (channelEntry == null)
-            throw new AssertionError("Closing connection in non-existing channelId " + channelId);
-        channelEntry.getLeft().closeConnection(target, connection);
-    }
-
-    /**
-     * Opens a connection to a peer in the given channel.
-     * Called by {@link GenericProtocol}. Do not evoke directly.
-     */
-    void openConnection(int channelId, Host target) {
-        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
-                channelMap.get(channelId);
-        if (channelEntry == null)
-            throw new AssertionError("Opening connection in non-existing channelId " + channelId);
-        channelEntry.getLeft().openConnection(target);
-    }
     
     
     // 注册消息的序列化和反序列化
@@ -306,6 +295,56 @@ public class Babel {
             throw new AssertionError("Registering serializer in non-existing channelId " + channelId);
         channelEntry.getRight().registerProtoSerializer(msgCode, serializer);
     }
+
+
+
+    
+
+
+
+
+    /**
+     * Opens a connection to a peer in the given channel.
+     * Called by {@link GenericProtocol}. Do not evoke directly.
+     */
+    void openConnection(int channelId, Host target) {
+        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
+                channelMap.get(channelId);
+        if (channelEntry == null)
+            throw new AssertionError("Opening connection in non-existing channelId " + channelId);
+        channelEntry.getLeft().openConnection(target);
+    }
+
+    /**
+     * Closes a connection to a peer in a given channel.
+     * Called by {@link GenericProtocol}. Do not evoke directly.
+     */
+    void closeConnection(int channelId, Host target, int connection) {
+        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
+                channelMap.get(channelId);
+        if (channelEntry == null)
+            throw new AssertionError("Closing connection in non-existing channelId " + channelId);
+        channelEntry.getLeft().closeConnection(target, connection);
+    }
+
+    
+    /**
+     * Sends a message to a peer using the given channel and connection.
+     * Called by {@link GenericProtocol}. Do not evoke directly.
+     */
+    void sendMessage(int channelId, int connection, BabelMessage msg, Host target) {
+        Triple<IChannel<BabelMessage>, ChannelToProtoForwarder, BabelMessageSerializer> channelEntry =
+                channelMap.get(channelId);
+        if (channelEntry == null)
+            throw new AssertionError("Sending message to non-existing channelId " + channelId);
+        channelEntry.getLeft().sendMessage(msg, target, connection);
+    }
+    
+    
+    
+    
+    
+    
 
     
     
@@ -438,8 +477,9 @@ public class Babel {
     
     
     
-    // ---------------------------- CONFIG
-
+    // ---------------------------- CONFIG----
+    
+    
     /**
      * Reads either the default or the given properties file (the file can be given with the argument -config)
      * Builds a configuration file with the properties from the file and then merges ad-hoc properties given
@@ -491,7 +531,8 @@ public class Babel {
         }
         return config;
     }
-
+    
+    // 得到整个系统的运行时间
     public long getMillisSinceStart() {
         return started ? System.currentTimeMillis() - startTime : 0;
     }

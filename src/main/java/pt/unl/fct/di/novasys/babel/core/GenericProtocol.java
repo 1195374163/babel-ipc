@@ -45,8 +45,10 @@ public abstract class GenericProtocol {
     private final BlockingQueue<InternalEvent>  childQueue4;
 
 
-
+    //thread id 在用于分发消息的并行处理中使用那个线程
     public   int  threadID=-1;
+    
+    // TODO: 2023/6/22 可以考虑线程池的使用 
     
     private final Thread executionThread;
     private final Thread  orderExecutionThread;
@@ -59,12 +61,15 @@ public abstract class GenericProtocol {
     private final  Thread  childThread4;
     
     
-    
+    // protocol的名字和id
     private final String protoName;
     private final short protoId;
-
+    
+    
+    // 默认的channel id，在程序的调用方不想多写channel id，默认使用者个
     private int defaultChannel;
 
+    
     //这个字段代替了对通道的事件的处理方法
     private final Map<Integer, ChannelHandlers> channels;
     private final Map<Short, TimerHandler<? extends ProtoTimer>> timerHandlers;
@@ -73,6 +78,7 @@ public abstract class GenericProtocol {
     private final Map<Short, NotificationHandler<? extends ProtoNotification>> notificationHandlers;
 
     
+    // 得到程序中的单例
     private static final Babel babel = Babel.getInstance();
 
     
@@ -146,6 +152,7 @@ public abstract class GenericProtocol {
         this(protoName, protoId, new LinkedBlockingQueue<>());
     }
 
+    
     /**
      * Returns the numeric identifier of the protocol
      *
@@ -175,6 +182,8 @@ public abstract class GenericProtocol {
      */
     public abstract void init(Properties props) throws HandlerRegistrationException, IOException;
 
+    
+    
     /**
      * Start the execution thread of the protocol
      */
@@ -189,6 +198,7 @@ public abstract class GenericProtocol {
         this.childThread4.start();
     }
     
+    
 
     public ProtocolMetrics getMetrics() {
         return metrics;
@@ -200,6 +210,11 @@ public abstract class GenericProtocol {
 
     
     
+    
+    
+    
+    
+    
     //------------------ PROTOCOL REGISTERS -------------------------------------
 
     protected void registerMetric(Metric m){
@@ -208,6 +223,7 @@ public abstract class GenericProtocol {
 
     
     
+    // 不管是messager，还是ipc还是 subscribe  timer 都使用这个注册处理函数
     private <V> void registerHandler(short id, V handler, Map<Short, V> handlerMap)
             throws HandlerRegistrationException {
         if (handlerMap.putIfAbsent(id, handler) != null) {
@@ -216,6 +232,7 @@ public abstract class GenericProtocol {
         }
     }
 
+    
     
     
     
@@ -291,6 +308,11 @@ public abstract class GenericProtocol {
         if (failHandler != null) registerHandler(msgId, failHandler, getChannelOrThrow(cId).messageFailedHandlers);
     }
 
+  
+    
+    
+    // ------------------注册event的处理函数
+    
     /**
      * Register an handler to process a channel-specific event
      *
@@ -305,6 +327,11 @@ public abstract class GenericProtocol {
         registerHandler(eventId, handler, getChannelOrThrow(cId).channelEventHandlers);
     }
 
+    
+    
+    
+    //--------注册时钟
+    
     /**
      * Register a timer handler for the protocol to process timer events
      *
@@ -318,6 +345,12 @@ public abstract class GenericProtocol {
         registerHandler(timerID, handler, timerHandlers);
     }
 
+    
+    
+    
+    
+    //----------------注册ipc请求
+    
     /**
      * Register a request handler for the protocol to process request events
      *
@@ -344,15 +377,22 @@ public abstract class GenericProtocol {
     }
 
     
+    
+    
+    
+    
+    
     // ------------------------- NETWORK/CHANNELS ----------------------
     
-    //得到对应chanel的channel事件处理实例也有判断处理实例是否存在的作用
+    //得到对应chanel的channel事件处理实例；也有判断处理实例是否存在的作用——不存在直接爆出异常
     private ChannelHandlers getChannelOrThrow(int channelId) {
         ChannelHandlers handlers = channels.get(channelId);
         if (handlers == null)
             throw new AssertionError("Channel does not exist: " + channelId);
         return handlers;
     }
+    
+    
     
     // 注册一个序列化和反序列化
     /**
@@ -367,6 +407,7 @@ public abstract class GenericProtocol {
     }
     
     
+    
     // 每个协议创建一个TCP通道
     /**
      * Creates a new channel
@@ -377,7 +418,7 @@ public abstract class GenericProtocol {
      */
     protected final int createChannel(String channelName, Properties props) throws IOException {
         int channelId = babel.createChannel(channelName, this.protoId, props);
-        registerSharedChannel(channelId);
+        registerSharedChannel(channelId);//使用这个将这个协议设定为这个chanel的消费者
         return channelId;
     }
     
@@ -408,6 +449,8 @@ public abstract class GenericProtocol {
     
     
     
+    
+    
     /**
      * Sends a message to a specified destination, using the default channel.
      * May require the use of {@link #openConnection(Host)} beforehand.
@@ -418,6 +461,7 @@ public abstract class GenericProtocol {
     protected final void sendMessage(ProtoMessage msg, Host destination) {
         sendMessage(defaultChannel, msg, this.protoId, destination, 0);
     }
+    
 
     /**
      * Sends a message to a specified destination using the given channel.
@@ -430,7 +474,10 @@ public abstract class GenericProtocol {
     protected final void sendMessage(int channelId, ProtoMessage msg, Host destination) {
         sendMessage(channelId, msg, this.protoId, destination, 0);
     }
-
+    
+    
+    // TODO: 2023/6/23  在发送排序消息时，使用这个方法
+    
     /**
      * Sends a message to a different protocol in the specified destination, using the default channel.
      * May require the use of {@link #openConnection(Host)} beforehand.
@@ -510,6 +557,7 @@ public abstract class GenericProtocol {
     
     
     
+    
     //关于通道的打开和关闭
     /**
      * Open a connection to the given peer using the default channel.
@@ -536,9 +584,6 @@ public abstract class GenericProtocol {
     
     
     
-    
-    
-    
     /**
      * Closes the connection to the given peer using the default channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -561,6 +606,7 @@ public abstract class GenericProtocol {
         closeConnection(peer, channelId, protoId);
     }
 
+    
     /**
      * Closes a specific connection to the given peer in the given channel.
      * Depending on the channel, this method may be unnecessary/forbidden.
@@ -575,6 +621,7 @@ public abstract class GenericProtocol {
         babel.closeConnection(channelId, peer, connection);
     }
 
+    
     
     
     
@@ -687,6 +734,8 @@ public abstract class GenericProtocol {
     
     
     
+    
+    
     // --------- DELIVERERS FROM BABEL -------实质是 Babel中channelto-------------
     
 
@@ -744,6 +793,7 @@ public abstract class GenericProtocol {
     }
 
     
+    // 这是协议之间的组件通信
     
     /**
      * Used by babel to deliver timer events to protocols. Do not evoke directly.

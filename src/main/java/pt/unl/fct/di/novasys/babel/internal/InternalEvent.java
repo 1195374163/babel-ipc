@@ -44,7 +44,7 @@ public abstract class InternalEvent {
 
     
     
-    // 验证函数
+    // 验证函数，验证此事件类型是
     
     
     /**
