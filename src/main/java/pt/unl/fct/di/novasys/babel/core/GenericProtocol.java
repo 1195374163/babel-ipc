@@ -50,8 +50,8 @@ public abstract class GenericProtocol {
     
     // TODO: 2023/6/22 可以考虑线程池的使用 
     
-    //private final Thread executionThread;
-    private final Thread  orderExecutionThread;
+    private final Thread executionThread;
+    //private final Thread  orderExecutionThread;
     //private final Thread  parallelexecutionThread;
   
     
@@ -117,9 +117,9 @@ public abstract class GenericProtocol {
 
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
-        //this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"-Dispatcher");
+        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"-Dispatcher");
         //this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+"-parallel");
-        this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
+        //this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         
         this.childThread1= new Thread(this::childLoop1, protoId + "-" + protoName+"-childThread1");
         this.childThread2= new Thread(this::childLoop2, protoId + "-" + protoName+"-childThread2");
@@ -188,8 +188,8 @@ public abstract class GenericProtocol {
      * Start the execution thread of the protocol
      */
     public final void start() {
-        //this.executionThread.start();
-        this.orderExecutionThread.start();
+        this.executionThread.start();
+        //this.orderExecutionThread.start();
         //this.parallelexecutionThread.start();
         
         this.childThread1.start();
@@ -743,81 +743,81 @@ public abstract class GenericProtocol {
      * Used by babel to deliver channel messages to protocols.
      */
     final protected void deliverMessageIn(MessageInEvent msgIn) {
-        if (protoId==300){//
-            short  msgthreadid=msgIn.getMsg().getMessage().getThreadid();
-            //在接收到accept和acceptack消息时,进入并行线程开始处理
-            switch (msgthreadid) {
-                case 1:
-                    childQueue1.add(msgIn);
-                    return;
-                case 2:
-                    childQueue2.add(msgIn);
-                    return;
-                case 3:
-                    childQueue3.add(msgIn);
-                    return;
-                case 4:
-                    childQueue4.add(msgIn);
-                    return;
-            }
-        }else{
-            orderQueue.add(msgIn);
-        }
-        //queue.add(msgIn);
+        //if (protoId==300){//
+        //    short  msgthreadid=msgIn.getMsg().getMessage().getThreadid();
+        //    //在接收到accept和acceptack消息时,进入并行线程开始处理
+        //    switch (msgthreadid) {
+        //        case 1:
+        //            childQueue1.add(msgIn);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(msgIn);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(msgIn);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(msgIn);
+        //            return;
+        //    }
+        //}else{
+        //    orderQueue.add(msgIn);
+        //}
+        queue.add(msgIn);
     }
 
     /**
      * Used by babel to deliver channel message sent events to protocols. Do not evoke directly.
      */
     final void deliverMessageSent(MessageSentEvent event) {
-        if (protoId==300){//
-            short  msgthreadid=event.getMsg().getMessage().getThreadid();
-            //在接收到accept和acceptack消息时,进入并行线程开始处理
-            switch (msgthreadid) {
-                case 1:
-                    childQueue1.add(event);
-                    return;
-                case 2:
-                    childQueue2.add(event);
-                    return;
-                case 3:
-                    childQueue3.add(event);
-                    return;
-                case 4:
-                    childQueue4.add(event);
-                    return;
-            }
-        }else{
-            orderQueue.add(event);
-        }
-        //queue.add(event);
+        //if (protoId==300){//
+        //    short  msgthreadid=event.getMsg().getMessage().getThreadid();
+        //    //在接收到accept和acceptack消息时,进入并行线程开始处理
+        //    switch (msgthreadid) {
+        //        case 1:
+        //            childQueue1.add(event);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(event);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(event);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(event);
+        //            return;
+        //    }
+        //}else{
+        //    orderQueue.add(event);
+        //}
+        queue.add(event);
     }
 
     /**
      * Used by babel to deliver channel message failed events to protocols. Do not evoke directly.
      */
     final void deliverMessageFailed(MessageFailedEvent event) {
-        if (protoId==300){//
-            short  msgthreadid=event.getMsg().getMessage().getThreadid();
-            //在接收到accept和acceptack消息时,进入并行线程开始处理
-            switch (msgthreadid) {
-                case 1:
-                    childQueue1.add(event);
-                    return;
-                case 2:
-                    childQueue2.add(event);
-                    return;
-                case 3:
-                    childQueue3.add(event);
-                    return;
-                case 4:
-                    childQueue4.add(event);
-                    return;
-            }
-        }else{
-            orderQueue.add(event);
-        }
-        //queue.add(event);
+        //if (protoId==300){//
+        //    short  msgthreadid=event.getMsg().getMessage().getThreadid();
+        //    //在接收到accept和acceptack消息时,进入并行线程开始处理
+        //    switch (msgthreadid) {
+        //        case 1:
+        //            childQueue1.add(event);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(event);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(event);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(event);
+        //            return;
+        //    }
+        //}else{
+        //    orderQueue.add(event);
+        //}
+        queue.add(event);
     }
 
     
@@ -827,76 +827,81 @@ public abstract class GenericProtocol {
      * Used by babel to deliver timer events to protocols. Do not evoke directly.
      */
     final void deliverTimer(TimerEvent timer) {
-        if (protoId==300){
-            switch (threadID) {
-                case 1:
-                    childQueue1.add(timer);
-                    return;
-                case 2:
-                    childQueue2.add(timer);
-                    return;
-                case 3:
-                    childQueue3.add(timer);
-                    return;
-                case 4:
-                    childQueue4.add(timer);
-                    return;
-            }
-        }else{
-            orderQueue.add(timer);
-        }
-        //queue.add(timer);
+        //if (protoId==300){
+        //    switch (threadID) {
+        //        case 1:
+        //            childQueue1.add(timer);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(timer);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(timer);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(timer);
+        //            return;
+        //        default:
+        //            orderQueue.add(timer);
+        //    }
+        //}else{
+        //    orderQueue.add(timer);
+        //}
+        queue.add(timer);
     }
 
     /**
      * Used by babel to deliver notifications to protocols. Do not evoke directly.
      */
     final void deliverNotification(NotificationEvent notification) {
-        if (protoId==300){//
-            switch (threadID) {
-                case 1:
-                    childQueue1.add(notification);
-                    return;
-                case 2:
-                    childQueue2.add(notification);
-                    return;
-                case 3:
-                    childQueue3.add(notification);
-                    return;
-                case 4:
-                    childQueue4.add(notification);
-                    return;
-            }
-        }else{
-            orderQueue.add(notification);
-        }
-        //queue.add(notification);
+        //if (protoId==300){//
+        //    switch (threadID) {
+        //        case 1:
+        //            childQueue1.add(notification);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(notification);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(notification);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(notification);
+        //            return;
+        //        default:
+        //            orderQueue.add(notification);
+        //    }
+        //}else{
+        //    orderQueue.add(notification);
+        //}
+        queue.add(notification);
     }
 
     /**
      * Used by babel to deliver requests/replies to protocols. Do not evoke directly.
      */
     final void deliverIPC(IPCEvent ipc) {
-        if (protoId==300){//
-            switch (threadID) {
-                case 1:
-                    childQueue1.add(ipc);
-                    return;
-                case 2:
-                    childQueue2.add(ipc);
-                    return;
-                case 3:
-                    childQueue3.add(ipc);
-                    return;
-                case 4:
-                    childQueue4.add(ipc);
-                    return;
-                default:
-                    return;
-            }
-        }else{
-            orderQueue.add(ipc);
-        }
+        //if (protoId==300){//
+        //    switch (threadID) {
+        //        case 1:
+        //            childQueue1.add(ipc);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(ipc);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(ipc);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(ipc);
+        //            return;
+        //        default:
+        //            orderQueue.add(ipc);
+        //    }
+        //}else{
+        //    orderQueue.add(ipc);
+        //}
+        queue.add(ipc);
     }
 
 
@@ -904,25 +909,27 @@ public abstract class GenericProtocol {
      * Used by babel to deliver channel events to protocols. Do not evoke directly.
      */
     final void deliverChannelEvent(CustomChannelEvent event) {
-        //queue.add(event);
-        if (protoId==300){//
-            switch (threadID) {
-                case 1:
-                    childQueue1.add(event);
-                    return;
-                case 2:
-                    childQueue2.add(event);
-                    return;
-                case 3:
-                    childQueue3.add(event);
-                    return;
-                case 4:
-                    childQueue4.add(event);
-                    return;
-            }
-        }else{
-            orderQueue.add(event);
-        }
+        queue.add(event);
+        //if (protoId==300){//
+        //    switch (threadID) {
+        //        case 1:
+        //            childQueue1.add(event);
+        //            return;
+        //        case 2:
+        //            childQueue2.add(event);
+        //            return;
+        //        case 3:
+        //            childQueue3.add(event);
+        //            return;
+        //        case 4:
+        //            childQueue4.add(event);
+        //            return;
+        //        default:
+        //            orderQueue.add(event);
+        //    }
+        //}else{
+        //    orderQueue.add(event);
+        //}
     }
     
     
@@ -941,46 +948,98 @@ public abstract class GenericProtocol {
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
                         metrics.messagesInCount++;
-                        orderQueue.add(pe);
-                        //this.handleMessageIn((MessageInEvent) pe);
+                        if (protoId==300){
+                            MessageInEvent msgIn=(MessageInEvent)pe;
+                            short  msgthreadid=msgIn.getMsg().getMessage().getThreadid();
+                            //在接收到accept和acceptack消息时,进入并行线程开始处理
+                            switch (msgthreadid) {
+                                case 1:
+                                    childQueue1.add(msgIn);
+                                    break;
+                                case 2:
+                                    childQueue2.add(msgIn);
+                                    break;
+                                case 3:
+                                    childQueue3.add(msgIn);
+                                    break;
+                                case 4:
+                                    childQueue4.add(msgIn);
+                                    break;
+                                default:
+                                    
+                            }
+                        }else{
+                            this.handleMessageIn((MessageInEvent) pe);
+                        }
                         break;
                     case MESSAGE_FAILED_EVENT:
                         metrics.messagesFailedCount++;
-                        orderQueue.add(pe);
-                        //this.handleMessageFailed((MessageFailedEvent) pe);
+                        if (protoId==300){
+                            MessageFailedEvent msgFail=(MessageFailedEvent)pe;
+                            short  msgthreadid=msgFail.getMsg().getMessage().getThreadid();
+                            switch (msgthreadid) {
+                                case 1:
+                                    childQueue1.add(msgFail);
+                                    break;
+                                case 2:
+                                    childQueue2.add(msgFail);
+                                    break;
+                                case 3:
+                                    childQueue3.add(msgFail);
+                                    break;
+                                case 4:
+                                    childQueue4.add(msgFail);
+                                    break;
+                                default:
+                                    logger.warn("不应该到这在消息分发中");
+                            }
+                        }else{
+                            this.handleMessageFailed((MessageFailedEvent) pe);
+                        }
                         break;
                     case MESSAGE_SENT_EVENT:
                         metrics.messagesSentCount++;
-                        orderQueue.add(pe);
-                        //this.handleMessageSent((MessageSentEvent) pe);
+                        if (protoId==300){
+                            MessageSentEvent msgSent=(MessageSentEvent)pe;
+                            short  msgthreadid=msgSent.getMsg().getMessage().getThreadid();
+                            switch (msgthreadid) {
+                                case 1:
+                                    childQueue1.add(msgSent);
+                                    break;
+                                case 2:
+                                    childQueue2.add(msgSent);
+                                    break;
+                                case 3:
+                                    childQueue3.add(msgSent);
+                                    break;
+                                case 4:
+                                    childQueue4.add(msgSent);
+                                    break;
+                                default:
+                                    logger.warn("不应该到这在消息分发中");
+                            }
+                        }else{
+                            this.handleMessageSent((MessageSentEvent) pe);
+                        }
                         break;
                     case TIMER_EVENT:
                         metrics.timersCount++;
-                        orderQueue.add(pe);
-                        //this.handleTimer((TimerEvent) pe);
+                        this.handleTimer((TimerEvent) pe);
                         break;
                     case NOTIFICATION_EVENT:
                         metrics.notificationsCount++;
-                        orderQueue.add(pe);
-                        //this.handleNotification((NotificationEvent) pe);
+                        this.handleNotification((NotificationEvent) pe);
                         break;
                     case IPC_EVENT:
                         IPCEvent i = (IPCEvent) pe;
                         switch (i.getIpc().getType()) {
                             case REPLY:
                                 metrics.repliesCount++;
-                                orderQueue.add(pe);
-                                //handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
                                 break;
                             case REQUEST:
                                 metrics.requestsCount++;
-                                // 写可以发入并行通道，读因为要附加在全局实例中，发入order队列中
-                                if (((ProtoRequest) i.getIpc()).getId()==101){
-                                    parallelQueue.add(pe); 
-                                    break;
-                                }
-                                orderQueue.add(pe);
-                                //handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
                                 break;
                             default:
                                 throw new AssertionError("Ups");
@@ -988,8 +1047,7 @@ public abstract class GenericProtocol {
                         break;
                     case CUSTOM_CHANNEL_EVENT:
                         metrics.customChannelEventsCount++;
-                        orderQueue.add(pe);
-                        //this.handleChannelEvent((CustomChannelEvent) pe);
+                        this.handleChannelEvent((CustomChannelEvent) pe);
                         break;
                     default:
                         throw new AssertionError("Unexpected event received by babel. protocol "
