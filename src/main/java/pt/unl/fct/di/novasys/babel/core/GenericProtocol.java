@@ -117,7 +117,7 @@ public abstract class GenericProtocol {
 
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
-        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"-Dispatcher");
+        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName);
         //this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+"-parallel");
         //this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         
