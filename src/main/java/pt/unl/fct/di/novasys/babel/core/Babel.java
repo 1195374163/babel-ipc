@@ -502,10 +502,10 @@ public class Babel {
             timersThread.interrupt();
         }else if (protoid==200){
             timerQueue2.add(newTimer);
-            timersThread.interrupt();
+            timersThread2.interrupt();
         }else {
             timerQueue3.add(newTimer);
-            timersThread.interrupt();
+            timersThread3.interrupt();
         }
         
         //timerQueue.add(newTimer);
@@ -531,10 +531,10 @@ public class Babel {
             timersThread.interrupt();
         }else if (protoid==200){
             timerQueue2.add(newTimer);
-            timersThread.interrupt();
+            timersThread2.interrupt();
         }else {
             timerQueue3.add(newTimer);
-            timersThread.interrupt();
+            timersThread3.interrupt();
         }
         //timersThread.interrupt();
         return id;
