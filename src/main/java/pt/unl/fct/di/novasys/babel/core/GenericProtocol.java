@@ -1498,8 +1498,10 @@ public abstract class GenericProtocol {
         RequestHandler h = this.requestHandlers.get(r.getId());
         if (h != null)
             h.uponRequest(r, from);
-        else
+        else {
             logger.warn("Discarding unexpected request (id " + r.getId() + "): " + r);
+            logger.warn( "存在哪些"+this.requestHandlers.entrySet());
+        }
     }
 
     private void handleReply(ProtoReply r, short from) {
