@@ -35,14 +35,14 @@ public abstract class GenericProtocol {
     //TODO split in GenericConnectionlessProtocol and GenericConnectionProtocol?
 
     private final BlockingQueue<InternalEvent> queue;
-    private final BlockingQueue<InternalEvent> orderQueue;
-    private final BlockingQueue<InternalEvent> parallelQueue;
+    //private final BlockingQueue<InternalEvent> orderQueue;
+    //private final BlockingQueue<InternalEvent> parallelQueue;
     
     
-    private final BlockingQueue<InternalEvent>  childQueue1;
-    private final BlockingQueue<InternalEvent>  childQueue2;
-    private final BlockingQueue<InternalEvent>  childQueue3;
-    private final BlockingQueue<InternalEvent>  childQueue4;
+    //private final BlockingQueue<InternalEvent>  childQueue1;
+    //private final BlockingQueue<InternalEvent>  childQueue2;
+    //private final BlockingQueue<InternalEvent>  childQueue3;
+    //private final BlockingQueue<InternalEvent>  childQueue4;
 
 
     //thread id 在用于分发消息的并行处理中使用那个线程
@@ -55,10 +55,10 @@ public abstract class GenericProtocol {
     //private final Thread  parallelexecutionThread;
   
     
-    private final  Thread  childThread1;
-    private final  Thread  childThread2;
-    private final  Thread  childThread3;
-    private final  Thread  childThread4;
+    //private final  Thread  childThread1;
+    //private final  Thread  childThread2;
+    //private final  Thread  childThread3;
+    //private final  Thread  childThread4;
     
     
     // protocol的名字和id
@@ -103,13 +103,13 @@ public abstract class GenericProtocol {
      */
     public GenericProtocol(String protoName, short protoId, BlockingQueue<InternalEvent> policy) {
         this.queue = policy;
-        this.orderQueue=new  LinkedBlockingQueue<>();
-        this.parallelQueue=new LinkedBlockingQueue<>();
+        //this.orderQueue=new  LinkedBlockingQueue<>();
+        //this.parallelQueue=new LinkedBlockingQueue<>();
         
-        this.childQueue1=new  LinkedBlockingQueue<>();
-        this.childQueue2=new  LinkedBlockingQueue<>();
-        this.childQueue3=new  LinkedBlockingQueue<>();
-        this.childQueue4=new  LinkedBlockingQueue<>();
+        //this.childQueue1=new  LinkedBlockingQueue<>();
+        //this.childQueue2=new  LinkedBlockingQueue<>();
+        //this.childQueue3=new  LinkedBlockingQueue<>();
+        //this.childQueue4=new  LinkedBlockingQueue<>();
         
         
         this.protoId = protoId;
@@ -121,11 +121,11 @@ public abstract class GenericProtocol {
         //this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+"-parallel");
         //this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         
-        this.childThread1= new Thread(this::childLoop1, protoId + "-" + protoName+"-childThread1");
-        this.childThread2= new Thread(this::childLoop2, protoId + "-" + protoName+"-childThread2");
-        this.childThread3= new Thread(this::childLoop3, protoId + "-" + protoName+"-childThread3");
-        this.childThread4= new Thread(this::childLoop4, protoId + "-" + protoName+"-childThread4");
-        
+        //this.childThread1= new Thread(this::childLoop1, protoId + "-" + protoName+"-childThread1");
+        //this.childThread2= new Thread(this::childLoop2, protoId + "-" + protoName+"-childThread2");
+        //this.childThread3= new Thread(this::childLoop3, protoId + "-" + protoName+"-childThread3");
+        //this.childThread4= new Thread(this::childLoop4, protoId + "-" + protoName+"-childThread4");
+        //
         
         channels = new HashMap<>();
         defaultChannel = -1;
@@ -192,10 +192,10 @@ public abstract class GenericProtocol {
         //this.orderExecutionThread.start();
         //this.parallelexecutionThread.start();
         
-        this.childThread1.start();
-        this.childThread2.start();
-        this.childThread3.start();
-        this.childThread4.start();
+        //this.childThread1.start();
+        //this.childThread2.start();
+        //this.childThread3.start();
+        //this.childThread4.start();
     }
     
     
@@ -948,79 +948,82 @@ public abstract class GenericProtocol {
                 switch (pe.getType()) {
                     case MESSAGE_IN_EVENT:
                         metrics.messagesInCount++;
-                        if (protoId==300){
-                            MessageInEvent msgIn=(MessageInEvent)pe;
-                            short  msgthreadid=msgIn.getMsg().getMessage().getThreadid();
-                            //在接收到accept和acceptack消息时,进入并行线程开始处理
-                            switch (msgthreadid) {
-                                case 1:
-                                    childQueue1.add(msgIn);
-                                    break;
-                                case 2:
-                                    childQueue2.add(msgIn);
-                                    break;
-                                case 3:
-                                    childQueue3.add(msgIn);
-                                    break;
-                                case 4:
-                                    childQueue4.add(msgIn);
-                                    break;
-                                default:
-                                    
-                            }
-                        }else{
-                            this.handleMessageIn((MessageInEvent) pe);
-                        }
+                        //if (protoId==300){
+                        //    MessageInEvent msgIn=(MessageInEvent)pe;
+                        //    short  msgthreadid=msgIn.getMsg().getMessage().getThreadid();
+                        //    //在接收到accept和acceptack消息时,进入并行线程开始处理
+                        //    switch (msgthreadid) {
+                        //        case 1:
+                        //            childQueue1.add(msgIn);
+                        //            break;
+                        //        case 2:
+                        //            childQueue2.add(msgIn);
+                        //            break;
+                        //        case 3:
+                        //            childQueue3.add(msgIn);
+                        //            break;
+                        //        case 4:
+                        //            childQueue4.add(msgIn);
+                        //            break;
+                        //        default:
+                        //            
+                        //    }
+                        //}else{
+                        //    this.handleMessageIn((MessageInEvent) pe);
+                        //}
+                        this.handleMessageIn((MessageInEvent) pe);
                         break;
                     case MESSAGE_FAILED_EVENT:
                         metrics.messagesFailedCount++;
-                        if (protoId==300){
-                            MessageFailedEvent msgFail=(MessageFailedEvent)pe;
-                            short  msgthreadid=msgFail.getMsg().getMessage().getThreadid();
-                            switch (msgthreadid) {
-                                case 1:
-                                    childQueue1.add(msgFail);
-                                    break;
-                                case 2:
-                                    childQueue2.add(msgFail);
-                                    break;
-                                case 3:
-                                    childQueue3.add(msgFail);
-                                    break;
-                                case 4:
-                                    childQueue4.add(msgFail);
-                                    break;
-                                default:
-                                    logger.warn("不应该到这在消息分发中");
-                            }
-                        }else{
-                            this.handleMessageFailed((MessageFailedEvent) pe);
-                        }
+                        //if (protoId==300){
+                        //    MessageFailedEvent msgFail=(MessageFailedEvent)pe;
+                        //    short  msgthreadid=msgFail.getMsg().getMessage().getThreadid();
+                        //    switch (msgthreadid) {
+                        //        case 1:
+                        //            childQueue1.add(msgFail);
+                        //            break;
+                        //        case 2:
+                        //            childQueue2.add(msgFail);
+                        //            break;
+                        //        case 3:
+                        //            childQueue3.add(msgFail);
+                        //            break;
+                        //        case 4:
+                        //            childQueue4.add(msgFail);
+                        //            break;
+                        //        default:
+                        //            logger.warn("不应该到这在消息分发中");
+                        //    }
+                        //}else{
+                        //    this.handleMessageFailed((MessageFailedEvent) pe);
+                        //}
+                        this.handleMessageFailed((MessageFailedEvent) pe);
                         break;
                     case MESSAGE_SENT_EVENT:
                         metrics.messagesSentCount++;
-                        if (protoId==300){
-                            MessageSentEvent msgSent=(MessageSentEvent)pe;
-                            short  msgthreadid=msgSent.getMsg().getMessage().getThreadid();
-                            switch (msgthreadid) {
-                                case 1:
-                                    childQueue1.add(msgSent);
-                                    break;
-                                case 2:
-                                    childQueue2.add(msgSent);
-                                    break;
-                                case 3:
-                                    childQueue3.add(msgSent);
-                                    break;
-                                case 4:
-                                    childQueue4.add(msgSent);
-                                    break;
-                                default:
-                                    logger.warn("不应该到这在消息分发中");
-                            }
-                        }else{
-                            this.handleMessageSent((MessageSentEvent) pe);
-                        }
+                        //if (protoId==300){
+                        //    MessageSentEvent msgSent=(MessageSentEvent)pe;
+                        //    short  msgthreadid=msgSent.getMsg().getMessage().getThreadid();
+                        //    switch (msgthreadid) {
+                        //        case 1:
+                        //            childQueue1.add(msgSent);
+                        //            break;
+                        //        case 2:
+                        //            childQueue2.add(msgSent);
+                        //            break;
+                        //        case 3:
+                        //            childQueue3.add(msgSent);
+                        //            break;
+                        //        case 4:
+                        //            childQueue4.add(msgSent);
+                        //            break;
+                        //        default:
+                        //            logger.warn("不应该到这在消息分发中");
+                        //    }
+                        //}else{
+                        //    this.handleMessageSent((MessageSentEvent) pe);
+                        //}
+                        this.handleMessageSent((MessageSentEvent) pe);
                         break;
                     case TIMER_EVENT:
                         metrics.timersCount++;
@@ -1060,382 +1063,382 @@ public abstract class GenericProtocol {
         }
     }
     
-    private void orderLoop() {
-        while (true) {
-            try {
-                InternalEvent pe = this.orderQueue.take();
-                if (logger.isDebugEnabled())
-                    logger.debug("Handling event: " + pe);
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
-                        break;
-                    case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-orderLoop)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-orderLoop) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
-    
-    // 只有TPOChain的算法需要这个底层依赖,其他算法还是原来的依赖,这点要注意
-    private void  partiLoop(){
-        while (true) {
-            try {
-                InternalEvent pe = this.parallelQueue.take();
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        MessageInEvent inm=(MessageInEvent) pe;
-                        // 能进入这个通道的mssage都是201 202
-                        short threadid=inm.getMsg().getMessage().getThreadid();
-                        switch (threadid) {
-                            case 1:
-                                childQueue1.add(pe);
-                                break;
-                            case 2:
-                                childQueue2.add(pe);
-                                break;
-                            case 3:
-                                childQueue3.add(pe);
-                                break;
-                            case 4:
-                                childQueue4.add(pe);
-                                break;
-                            default:
-                                orderQueue.add(pe);
-                                break;
-                        }
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        MessageFailedEvent failm=(MessageFailedEvent) pe;
-                        // 能进入这个通道的mssage都是201 202
-                        short failthreadid=failm.getMsg().getMessage().getThreadid();
-                        switch (failthreadid) {
-                            case 1:
-                                childQueue1.add(pe);
-                                break;
-                            case 2:
-                                childQueue2.add(pe);
-                                break;
-                            case 3:
-                                childQueue3.add(pe);
-                                break;
-                            case 4:
-                                childQueue4.add(pe);
-                                break;
-                            default:
-                                orderQueue.add(pe);
-                                break;
-                        }
-                        //this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        MessageSentEvent sendm=(MessageSentEvent) pe;
-                        // 能进入这个通道的mssage都是201 202
-                        short sendthreadid=sendm.getMsg().getMessage().getThreadid();
-                        switch (sendthreadid) {
-                            case 1:
-                                childQueue1.add(pe);
-                                break;
-                            case 2:
-                                childQueue2.add(pe);
-                                break;
-                            case 3:
-                                childQueue3.add(pe);
-                                break;
-                            case 4:
-                                childQueue4.add(pe);
-                                break;
-                            default:
-                                orderQueue.add(pe);
-                                break;
-                        }
-                        //this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        switch (threadID) {
-                            case 1:
-                                childQueue1.add(pe);
-                                break;
-                            case 2:
-                                childQueue2.add(pe);
-                                break;
-                            case 3:
-                                childQueue3.add(pe);
-                                break;
-                            case 4:
-                                childQueue4.add(pe);
-                                break;
-                            default:
-                                orderQueue.add(pe);
-                                break;
-                        }
-                        break;
-                    case NOTIFICATION_EVENT:
-                        //this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                switch (threadID) {
-                                    case 1:
-                                        childQueue1.add(pe);
-                                        break;
-                                    case 2:
-                                        childQueue2.add(pe);
-                                        break;
-                                    case 3:
-                                        childQueue3.add(pe);
-                                        break;
-                                    case 4:
-                                        childQueue4.add(pe);
-                                        break;
-                                    default:
-                                        orderQueue.add(pe);
-                                        break;
-                                }
-                                //handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        //this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-partiLoop)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-partiLoop) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
+    //private void orderLoop() {
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.orderQueue.take();
+    //            if (logger.isDebugEnabled())
+    //                logger.debug("Handling event: " + pe);
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    this.handleMessageIn((MessageInEvent) pe);
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    this.handleTimer((TimerEvent) pe);
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-orderLoop)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-orderLoop) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
+    //
+    //// 只有TPOChain的算法需要这个底层依赖,其他算法还是原来的依赖,这点要注意
+    //private void  partiLoop(){
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.parallelQueue.take();
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    MessageInEvent inm=(MessageInEvent) pe;
+    //                    // 能进入这个通道的mssage都是201 202
+    //                    short threadid=inm.getMsg().getMessage().getThreadid();
+    //                    switch (threadid) {
+    //                        case 1:
+    //                            childQueue1.add(pe);
+    //                            break;
+    //                        case 2:
+    //                            childQueue2.add(pe);
+    //                            break;
+    //                        case 3:
+    //                            childQueue3.add(pe);
+    //                            break;
+    //                        case 4:
+    //                            childQueue4.add(pe);
+    //                            break;
+    //                        default:
+    //                            orderQueue.add(pe);
+    //                            break;
+    //                    }
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    MessageFailedEvent failm=(MessageFailedEvent) pe;
+    //                    // 能进入这个通道的mssage都是201 202
+    //                    short failthreadid=failm.getMsg().getMessage().getThreadid();
+    //                    switch (failthreadid) {
+    //                        case 1:
+    //                            childQueue1.add(pe);
+    //                            break;
+    //                        case 2:
+    //                            childQueue2.add(pe);
+    //                            break;
+    //                        case 3:
+    //                            childQueue3.add(pe);
+    //                            break;
+    //                        case 4:
+    //                            childQueue4.add(pe);
+    //                            break;
+    //                        default:
+    //                            orderQueue.add(pe);
+    //                            break;
+    //                    }
+    //                    //this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    MessageSentEvent sendm=(MessageSentEvent) pe;
+    //                    // 能进入这个通道的mssage都是201 202
+    //                    short sendthreadid=sendm.getMsg().getMessage().getThreadid();
+    //                    switch (sendthreadid) {
+    //                        case 1:
+    //                            childQueue1.add(pe);
+    //                            break;
+    //                        case 2:
+    //                            childQueue2.add(pe);
+    //                            break;
+    //                        case 3:
+    //                            childQueue3.add(pe);
+    //                            break;
+    //                        case 4:
+    //                            childQueue4.add(pe);
+    //                            break;
+    //                        default:
+    //                            orderQueue.add(pe);
+    //                            break;
+    //                    }
+    //                    //this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    switch (threadID) {
+    //                        case 1:
+    //                            childQueue1.add(pe);
+    //                            break;
+    //                        case 2:
+    //                            childQueue2.add(pe);
+    //                            break;
+    //                        case 3:
+    //                            childQueue3.add(pe);
+    //                            break;
+    //                        case 4:
+    //                            childQueue4.add(pe);
+    //                            break;
+    //                        default:
+    //                            orderQueue.add(pe);
+    //                            break;
+    //                    }
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    //this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            switch (threadID) {
+    //                                case 1:
+    //                                    childQueue1.add(pe);
+    //                                    break;
+    //                                case 2:
+    //                                    childQueue2.add(pe);
+    //                                    break;
+    //                                case 3:
+    //                                    childQueue3.add(pe);
+    //                                    break;
+    //                                case 4:
+    //                                    childQueue4.add(pe);
+    //                                    break;
+    //                                default:
+    //                                    orderQueue.add(pe);
+    //                                    break;
+    //                            }
+    //                            //handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    //this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-partiLoop)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-partiLoop) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
     
     
     
     // 四个子线程的Runnnable
-    private  void   childLoop1(){
-        while (true) {
-            try {
-                InternalEvent pe = this.childQueue1.take();
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
-                        break;
-                    case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-childLoop1)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop1) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
-    private  void   childLoop2(){
-        while (true) {
-            try {
-                InternalEvent pe = this.childQueue2.take();
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
-                        break;
-                    case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-childLoop2)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop2) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
-    private  void   childLoop3(){
-        while (true) {
-            try {
-                InternalEvent pe = this.childQueue3.take();
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
-                        break;
-                    case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-childLoop3)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop3) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
-    private  void   childLoop4(){
-        while (true) {
-            try {
-                InternalEvent pe = this.childQueue4.take();
-                switch (pe.getType()) {
-                    case MESSAGE_IN_EVENT:
-                        this.handleMessageIn((MessageInEvent) pe);
-                        break;
-                    case MESSAGE_FAILED_EVENT:
-                        this.handleMessageFailed((MessageFailedEvent) pe);
-                        break;
-                    case MESSAGE_SENT_EVENT:
-                        this.handleMessageSent((MessageSentEvent) pe);
-                        break;
-                    case TIMER_EVENT:
-                        this.handleTimer((TimerEvent) pe);
-                        break;
-                    case NOTIFICATION_EVENT:
-                        this.handleNotification((NotificationEvent) pe);
-                        break;
-                    case IPC_EVENT:
-                        IPCEvent i = (IPCEvent) pe;
-                        switch (i.getIpc().getType()) {
-                            case REPLY:
-                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
-                                break;
-                            case REQUEST:
-                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
-                                break;
-                            default:
-                                throw new AssertionError("Ups");
-                        }
-                        break;
-                    case CUSTOM_CHANNEL_EVENT:
-                        this.handleChannelEvent((CustomChannelEvent) pe);
-                        break;
-                    default:
-                        throw new AssertionError("Unexpected event received by babel. protocol "
-                                + protoId + " (" + protoName + "-childLoop4)");
-                }
-            } catch (Exception e) {
-                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop4) " + e, e);
-                e.printStackTrace();
-            }
-        }
-    }
+    //private  void   childLoop1(){
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.childQueue1.take();
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    this.handleMessageIn((MessageInEvent) pe);
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    this.handleTimer((TimerEvent) pe);
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-childLoop1)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop1) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
+    //private  void   childLoop2(){
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.childQueue2.take();
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    this.handleMessageIn((MessageInEvent) pe);
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    this.handleTimer((TimerEvent) pe);
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-childLoop2)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop2) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
+    //private  void   childLoop3(){
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.childQueue3.take();
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    this.handleMessageIn((MessageInEvent) pe);
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    this.handleTimer((TimerEvent) pe);
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-childLoop3)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop3) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
+    //private  void   childLoop4(){
+    //    while (true) {
+    //        try {
+    //            InternalEvent pe = this.childQueue4.take();
+    //            switch (pe.getType()) {
+    //                case MESSAGE_IN_EVENT:
+    //                    this.handleMessageIn((MessageInEvent) pe);
+    //                    break;
+    //                case MESSAGE_FAILED_EVENT:
+    //                    this.handleMessageFailed((MessageFailedEvent) pe);
+    //                    break;
+    //                case MESSAGE_SENT_EVENT:
+    //                    this.handleMessageSent((MessageSentEvent) pe);
+    //                    break;
+    //                case TIMER_EVENT:
+    //                    this.handleTimer((TimerEvent) pe);
+    //                    break;
+    //                case NOTIFICATION_EVENT:
+    //                    this.handleNotification((NotificationEvent) pe);
+    //                    break;
+    //                case IPC_EVENT:
+    //                    IPCEvent i = (IPCEvent) pe;
+    //                    switch (i.getIpc().getType()) {
+    //                        case REPLY:
+    //                            handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        case REQUEST:
+    //                            handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+    //                            break;
+    //                        default:
+    //                            throw new AssertionError("Ups");
+    //                    }
+    //                    break;
+    //                case CUSTOM_CHANNEL_EVENT:
+    //                    this.handleChannelEvent((CustomChannelEvent) pe);
+    //                    break;
+    //                default:
+    //                    throw new AssertionError("Unexpected event received by babel. protocol "
+    //                            + protoId + " (" + protoName + "-childLoop4)");
+    //            }
+    //        } catch (Exception e) {
+    //            logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-childLoop4) " + e, e);
+    //            e.printStackTrace();
+    //        }
+    //    }
+    //}
     
     
     
