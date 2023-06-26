@@ -102,7 +102,6 @@ public class Babel {
     //Timers
     private final Map<Long, TimerEvent> allTimers;
     // 一份协议一个timer
-    private Map<Short,Map<Long, TimerEvent>>  protocolTimers;
     private final PriorityBlockingQueue<TimerEvent> timerQueue;
     private final PriorityBlockingQueue<TimerEvent> timerQueue2;
     private final PriorityBlockingQueue<TimerEvent> timerQueue3;

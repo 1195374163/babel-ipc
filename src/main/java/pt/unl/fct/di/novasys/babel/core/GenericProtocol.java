@@ -46,7 +46,7 @@ public abstract class GenericProtocol {
 
 
     //thread id 在用于分发消息的并行处理中使用那个线程
-    public   int  threadID=-1;
+    //public   int  threadID=-1;
     
     // TODO: 2023/6/22 可以考虑线程池的使用 
     
