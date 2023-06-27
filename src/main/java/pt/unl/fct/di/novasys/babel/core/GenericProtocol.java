@@ -35,6 +35,9 @@ public abstract class GenericProtocol {
     //TODO split in GenericConnectionlessProtocol and GenericConnectionProtocol?
 
     private final BlockingQueue<InternalEvent> queue;
+
+
+    private final BlockingQueue<InternalEvent> ipcqueue;
     //private final BlockingQueue<InternalEvent> orderQueue;
     //private final BlockingQueue<InternalEvent> parallelQueue;
     
@@ -51,6 +54,7 @@ public abstract class GenericProtocol {
     // TODO: 2023/6/22 可以考虑线程池的使用 
     
     private final Thread executionThread;
+    private final Thread ipcThread;
     //private final Thread  orderExecutionThread;
     //private final Thread  parallelexecutionThread;
   
@@ -111,13 +115,15 @@ public abstract class GenericProtocol {
         //this.childQueue3=new  LinkedBlockingQueue<>();
         //this.childQueue4=new  LinkedBlockingQueue<>();
         
+        this.ipcqueue=new LinkedBlockingQueue<>();
         
         this.protoId = protoId;
         this.protoName = protoName;
 
         //TODO change to event loop (simplifies the deliver->poll->handle process)
         //TODO only change if performance better
-        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName);
+        this.executionThread = new Thread(this::mainLoop, protoId + "-" + protoName+"mainLoop");
+        this.ipcThread=new Thread(this::ipcLoop, protoId + "-" + protoName+"ipcLoop");
         //this.parallelexecutionThread=new  Thread(this::partiLoop, protoId + "-" + protoName+"-parallel");
         //this.orderExecutionThread=new Thread(this::orderLoop,protoId + "-" + protoName+"-Order");  
         
@@ -189,6 +195,7 @@ public abstract class GenericProtocol {
      */
     public final void start() {
         this.executionThread.start();
+        this.ipcThread.start();
         //this.orderExecutionThread.start();
         //this.parallelexecutionThread.start();
         
@@ -901,7 +908,12 @@ public abstract class GenericProtocol {
         //}else{
         //    orderQueue.add(ipc);
         //}
-        queue.add(ipc);
+        
+        if(ipc.getIpc().getType()==ProtoIPC.Type.REQUEST){
+            ipcqueue.add(ipc);
+        }else {
+            queue.add(ipc);
+        }
     }
 
 
@@ -1439,7 +1451,39 @@ public abstract class GenericProtocol {
     //        }
     //    }
     //}
-    
+    private void ipcLoop() {
+        while (true) {
+            try {
+                InternalEvent pe = this.ipcqueue.take();
+                //metrics.totalEventsCount++;
+                if (logger.isDebugEnabled())
+                    logger.debug("Handling event: " + pe);
+                switch (pe.getType()) {
+                    case IPC_EVENT:
+                        IPCEvent i = (IPCEvent) pe;
+                        switch (i.getIpc().getType()) {
+                            case REPLY:
+                                //metrics.repliesCount++;
+                                handleReply((ProtoReply) i.getIpc(), i.getSenderID());
+                                break;
+                            case REQUEST:
+                                metrics.requestsCount++;
+                                handleRequest((ProtoRequest) i.getIpc(), i.getSenderID());
+                                break;
+                            default:
+                                throw new AssertionError("Ups");
+                        }
+                        break;
+                    default:
+                        throw new AssertionError("Unexpected event received by babel. protocol "
+                                + protoId + " (" + protoName + "-mainLoop)");
+                }
+            } catch (Exception e) {
+                logger.error("Unhandled exception in protocol " + getProtoName() +" ("+ getProtoId() +"-mainLoop) " + e, e);
+                e.printStackTrace();
+            }
+        }
+    }
     
     
     
